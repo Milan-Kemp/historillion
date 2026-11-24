@@ -411,7 +411,7 @@ export function mountScene(parent = document.body, opts = {}) {
       for (let i = 0; i < n; i++) T.hit(i, t0 + i * T.cycle);
       return t0 + n * T.cycle;
     };
-    const push = (step, t) => later(() => { cam = step; paint(); if (step) sound.play("thud"); }, t);
+    const push = (step, t) => later(() => { cam = step; paint(); if (step) { sound.play("thud"); root.classList.add("dim", "dim-tight"); } }, t);   // the push-in and the vignette closing round the pit happen together
     const beats = (from, to, t0, gap) => { let n = 0; for (let t = t0; t < to; t += gap, n++) { const i = n; later(() => { sound.play("heartbeat", i); if (opts.seek == null) { root.classList.add("beat"); setTimeout(() => root.classList.remove("beat"), 120); } }, t); gap = Math.max(gap * 0.93, 0.5); } };
     const breath = (t, seconds) => later(() => { hushed = true; sound.hush(seconds); vignetteOff(); root.classList.add("dim", "dim-tight"); }, t);
 
@@ -426,32 +426,32 @@ export function mountScene(parent = document.body, opts = {}) {
       play(man, MAN.watch_digger, 0.8, "loop");
       const CYC = 0.7;
       later(() => { play(machine, MACHINE.digger_dig, CYC, "loop"); rumble(true); }, 0.4);
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 4; i++) {
         const t = 0.4 + i * CYC;
         later(() => sound.play("dig-digger"), t);
         later(() => { fx("puff", 112, 56, 0.5); fx("soil", 104, 60, 0.45); }, t + 0.3);
         later(() => { fx("soil", 120, 58, 0.45); if (i % 2) { fx("clink", 100, 54, 0.3); sound.play("clink"); } }, t + 0.5);
       }
-      push(1, 2.6);                                             // one zoom step closer, around the pit
-      beats(0, 4.6, 1.4, 0.85);
-      later(() => { rumble(false); leave(MACHINE.digger_drive, 0.35); fx("puff", 108, 62, 0.5); }, 3.95);
-      breath(4.1, 1.5);                                         // everything goes quiet, the vignette closes round the pit
-      later(() => play(man, MAN.peer, 0.9, "once"), 4.15);      // he steps up to the trench and looks in
-      later(() => { vignetteOn(false); play(man, MAN.lean_crown, 0.8, "once"); }, 5.25);
-      later(() => { revealFind(0.4); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 112, 62, 0.5); }, 5.65);
-      later(carryFind, 5.9);                                    // the crown rises with his hands ...
-      push(0, 5.9);                                             // ... and the camera pulls back at once
-      later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 6.2);
-      later(() => putPending(true), 6.2 + SHOW);                // after the show the crown flies to the bench
+      push(1, 1.8);                                             // one zoom step closer, around the pit (and the vignette closes with it)
+      beats(0, 3.9, 1.2, 0.85);
+      later(() => { rumble(false); leave(MACHINE.digger_drive, 0.35); fx("puff", 108, 62, 0.5); }, 3.25);
+      breath(3.4, 1.5);                                         // everything goes quiet, the vignette closes round the pit
+      later(() => play(man, MAN.peer, 0.9, "once"), 3.45);      // he steps up to the trench and looks in
+      later(() => { vignetteOn(false); play(man, MAN.lean_crown, 0.8, "once"); }, 4.55);
+      later(() => { revealFind(0.4); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 112, 62, 0.5); }, 4.95);
+      later(carryFind, 5.2);                                    // the crown rises with his hands ...
+      push(0, 5.2);                                             // ... and the camera pulls back at once
+      later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 5.5);
+      later(() => putPending(true), 5.5 + SHOW);                // after the show the crown flies to the bench
     } else if (k === "veryRare") {                              // about 10.5 s: he strikes something hard, a winch hauls earth OUT of the trench, two zoom steps, a held breath, the statue is lifted out
       vignetteOn(true);
       sound.play("swell-veryRare");
       strokes("pickaxe", 0.2, 2);                               // two strikes: the second one rings on something hard
-      push(1, 1.7);
+      push(1, 1.5);
       later(() => { winch.hidden = false; play(winch, WINCH.rest, 1, "once"); hold(winch); fx("puff", 90, 80, 0.5); fx("puff", 152, 78, 0.5); sound.play("thud"); }, 1.6);   // the rig stands up beside the trench
       later(() => { play(man, MAN.crank, 0.8, "loop"); rumble(true); }, 1.7);
       const W = 1.0;                                            // one bucket per second: down, filled, up, tipped over the back of the trench, back
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         const t = 1.9 + i * W;
         if (i === 0) later(() => play(winch, WINCH.cycle, W, "loop"), t);
         later(() => sound.play("dig-digger"), t);
@@ -459,17 +459,17 @@ export function mountScene(parent = document.body, opts = {}) {
         later(() => { fx("soil", 119, 20, 0.45); fx("puff", 126, 22, 0.5); }, t + 0.62);                // ... and tips behind it, onto the spoil heaps
         if (i % 2) later(() => { fx("clink", 112, 60, 0.3); sound.play("clink"); }, t + 0.3);
       }
-      push(2, 4.0);                                             // a second zoom step
-      beats(0, 7.0, 2.8, 0.9);
-      later(() => { rumble(false); play(winch, WINCH.rest, 1, "once"); hold(winch); }, 6.05);
-      breath(6.1, 1.4);
-      later(() => play(man, MAN.peer, 0.9, "once"), 6.15);
-      later(() => vignetteOn(true), 7.3);
-      later(() => { revealFind(0.45); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 7.5);
-      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 8.0);   // the hook takes the statue and hoists it out
-      push(0, 8.3);                                             // the camera pulls back as it rises
-      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 8.7);
-      later(() => putPending(true), 8.7 + SHOW + 0.2);
+      push(2, 3.2);                                             // a second zoom step
+      beats(0, 6.0, 2.4, 0.9);
+      later(() => { rumble(false); play(winch, WINCH.rest, 1, "once"); hold(winch); }, 5.05);
+      breath(5.1, 1.4);
+      later(() => play(man, MAN.peer, 0.9, "once"), 5.15);
+      later(() => vignetteOn(true), 6.3);
+      later(() => { revealFind(0.45); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 6.5);
+      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 7.0);   // the hook takes the statue and hoists it out
+      push(0, 7.3);                                             // the camera pulls back as it rises
+      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 7.7);
+      later(() => putPending(true), 7.7 + SHOW + 0.2);
     } else {                                                    // common 4.5 s, uncommon 5.5 s, none 4 s: the tool works several times, he leans in and looks, brushes the find clean and holds it up
       const t = strokes(d.tool);
       const P = k === "none" ? 0.5 : 0.6;                       // the pause where he looks
@@ -538,10 +538,32 @@ export function mountScene(parent = document.body, opts = {}) {
 
   // ---- the camera (v7): a push-in on the pit in WHOLE zoom steps (the pixels stay crisp): zoom s + cam, kept around the spot between him and the pit (stage 106, 54) ----
   let base = { s: 3, sy: 40, ox: 0 };
+  // The camera pushes in on the pit, but the man and the pit (stage x 52 to 152, rows 22 to 100) must stay on screen and out from under the panel and the top bar.
+  // v8 pushed in blindly: at 375 x 812 he ended up 40 px off the left edge and 62 px under the panel, at 1896 x 930 the pit 47 px under the panel.
+  // camPlace(s) returns where the stage goes at zoom s (keeping the spot between him and the pit where it was when it can, else shifted just enough), or null if it cannot fit.
+  function camPlace(s) {
+    const vv = window.visualViewport;
+    const vw = window.innerWidth, vh = vv ? vv.height : window.innerHeight;
+    const appEl = document.getElementById("app");
+    const panel = appEl ? appEl.getBoundingClientRect() : { left: vw, bottom: 0 };
+    const side = document.documentElement.classList.contains("side");
+    const hudBottom = hudEl.hidden ? 0 : hudEl.getBoundingClientRect().bottom;
+    const topLimit = Math.max(hudBottom, side ? 0 : panel.bottom) + 6;
+    const rightLimit = (side ? panel.left : vw) - 4;
+    const oxMin = Math.ceil(4 + 40 * s), oxMax = Math.floor(rightLimit - 60 * s);          // left edge of the man at x 52, right edge of the pit at x 152 (stage origin is x -92)
+    const syMin = Math.ceil((topLimit - 22 * s) / s), syMax = Math.floor((vh - 4 - 100 * s) / s);
+    if (oxMin > oxMax || syMin > syMax) return null;
+    const ox = Math.min(Math.max(base.ox + 14 * (base.s - s), oxMin), oxMax);
+    const sy = Math.min(Math.max(Math.round(((base.sy + 54) * base.s) / s - 54), syMin), syMax);
+    return { ox, sy };
+  }
   function paint() {
-    const s = base.s + (reduce.matches ? 0 : cam);
-    const ox = base.ox + 14 * (base.s - s);                             // the spot between him and the pit (stage x 106) stays where it was on screen, so he stays in view too
-    const sy = Math.round(((base.sy + 54) * base.s) / s - 54);          // ... and so does its height (stage y 54)
+    let c = reduce.matches ? 0 : cam;
+    let place = null;
+    while (c > 0 && !(place = camPlace(base.s + c))) c--;               // fewer zoom steps on a screen that has no room for them
+    const s = base.s + c;
+    const ox = place ? place.ox : base.ox + 14 * (base.s - s);          // the spot between him and the pit (stage x 106) stays where it was on screen, so he stays in view too
+    const sy = place ? place.sy : Math.round(((base.sy + 54) * base.s) / s - 54);   // ... and so does its height (stage y 54), unless the screen has no room for that
     root.style.setProperty("--s", s);
     root.style.setProperty("--sy", sy);
     root.style.setProperty("--ox", `${ox}px`);
