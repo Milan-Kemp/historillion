@@ -73,6 +73,7 @@ function intro(day) {
 }
 
 function ask(day, i, results) {
+  waiting?.disconnect();
   const question = day.questions[i];
   const timer = el("p", { className: "timer", role: "timer", textContent: t.seconds(SECONDS) });
   const input = el("input", { type: "text", autocomplete: "off", autocapitalize: "off", spellcheck: false, placeholder: t.placeholder, "aria-label": question.prompt });
@@ -155,8 +156,9 @@ function feedback(day, i, results) {
   const r = results[i];
   const last = i === day.questions.length - 1;
   const total = results.reduce((s, x) => s + x.pts, 0);
+  const hud = (score) => scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(score), soundLabel: t.soundLabel });
   if (scene) {
-    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), soundLabel: t.soundLabel });
+    hud(total - r.pts); // the points are not counted before the find is out of the ground
     scene.dig(r.key, t.reaction[r.key], t.benchLabel[r.key]);
   }
   show(
@@ -167,13 +169,28 @@ function feedback(day, i, results) {
     ...(r.name ? [el("p", { textContent: t.matchedAs(r.name) })] : []),
     el("p", { className: "dig", textContent: t.youDug(r.dig.tool, r.dig.find) }),
     el("p", { className: "points", textContent: t.points(r.pts) }),
-    el("p", { textContent: r.rarity + (r.share ? `. ${t.shareOf(Math.round(r.share * 100))}` : "") }),
+    el("p", { className: "rarity-line", textContent: r.rarity + (r.share ? `. ${t.shareOf(Math.round(r.share * 100))}` : "") }),
     el("p", { textContent: r.text }),
     el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(day, results) : ask(day, i + 1, results)) }),
   );
+  if (scene) revealWhenDug(app.querySelectorAll(".dig, .points, .rarity-line"), () => hud(total));
+}
+
+// The result (points, what he dug up, how rare) waits for the dig: it shows when the scene shows its reaction label, which is when the find is out of the
+// ground, or at once when the beat is skipped (key, Enter or tap) or with reduced motion. Next is never blocked.
+let waiting = null;
+function revealWhenDug(nodes, done) {
+  waiting?.disconnect();
+  const react = document.querySelector("#scene .react");
+  const show = () => { nodes.forEach((n) => n.classList.remove("wait")); done(); };
+  if (!react || !react.hidden) return show();
+  nodes.forEach((n) => n.classList.add("wait"));
+  waiting = new MutationObserver(() => { if (!react.hidden) { waiting.disconnect(); show(); } });
+  waiting.observe(react, { attributes: true, attributeFilter: ["hidden"] });
 }
 
 function end(day, results) {
+  waiting?.disconnect();
   scene?.hud(null);
   scene?.reset();
   scene?.sound.play("finish");
