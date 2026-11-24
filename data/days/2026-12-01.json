@@ -1,0 +1,942 @@
+{
+  "date": "2026-12-01",
+  "questions": [
+    {
+      "id": "2026-12-01-q1",
+      "prompt": "Name a Roman emperor.",
+      "answers": [
+        {
+          "canonical": "Nero",
+          "aliases": [],
+          "prior_share": 0.25,
+          "explanation": "Last emperor of the Julio-Claudian dynasty, ruled 54 to 68 CE.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Nero"
+          ]
+        },
+        {
+          "canonical": "Augustus",
+          "aliases": [
+            "Octavian"
+          ],
+          "prior_share": 0.17,
+          "explanation": "First Roman emperor, ruled from 27 BCE until 14 CE.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Augustus"
+          ]
+        },
+        {
+          "canonical": "Caligula",
+          "aliases": [],
+          "prior_share": 0.12,
+          "explanation": "Ruled 37 to 41 CE and was assassinated by his own guard.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Caligula"
+          ]
+        },
+        {
+          "canonical": "Constantine",
+          "aliases": [
+            "Constantine the Great",
+            "Constantine I"
+          ],
+          "prior_share": 0.08,
+          "explanation": "Ruled 306 to 337 CE, backed Christianity and founded Constantinople.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Constantine_the_Great"
+          ]
+        },
+        {
+          "canonical": "Marcus Aurelius",
+          "aliases": [
+            "Aurelius"
+          ],
+          "prior_share": 0.07,
+          "explanation": "Ruled 161 to 180 CE and wrote the Meditations.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Marcus_Aurelius"
+          ]
+        },
+        {
+          "canonical": "Hadrian",
+          "aliases": [],
+          "prior_share": 0.07,
+          "explanation": "Ruled 117 to 138 CE, known for Hadrian's Wall in Britain.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Hadrian"
+          ]
+        },
+        {
+          "canonical": "Trajan",
+          "aliases": [],
+          "prior_share": 0.04,
+          "explanation": "Ruled 98 to 117 CE, when the empire reached its largest size.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Trajan"
+          ]
+        },
+        {
+          "canonical": "Claudius",
+          "aliases": [],
+          "prior_share": 0.04,
+          "explanation": "Ruled 41 to 54 CE and began the conquest of Britain in 43 CE.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Claudius"
+          ]
+        },
+        {
+          "canonical": "Commodus",
+          "aliases": [],
+          "prior_share": 0.03,
+          "explanation": "Ruled 177 to 192 CE (co-emperor with his father Marcus Aurelius until 180).",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Commodus"
+          ]
+        },
+        {
+          "canonical": "Diocletian",
+          "aliases": [],
+          "prior_share": 0.02,
+          "explanation": "Ruled 284 to 305 CE and split the empire's administration among several rulers.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Diocletian"
+          ]
+        },
+        {
+          "canonical": "Vespasian",
+          "aliases": [],
+          "prior_share": 0.015,
+          "explanation": "Ruled 69 to 79 CE and started building the Colosseum.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Vespasian"
+          ]
+        },
+        {
+          "canonical": "Tiberius",
+          "aliases": [],
+          "prior_share": 0.015,
+          "explanation": "Second emperor, ruled 14 to 37 CE, stepson of Augustus.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Tiberius"
+          ]
+        },
+        {
+          "canonical": "Elagabalus",
+          "aliases": [
+            "Heliogabalus"
+          ],
+          "prior_share": 0.01,
+          "explanation": "Ruled 218 to 222 CE and was killed as a teenager.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Elagabalus"
+          ]
+        }
+      ],
+      "rejected": [
+        {
+          "canonical": "Julius Caesar",
+          "aliases": [
+            "Caesar",
+            "Gaius Julius Caesar"
+          ],
+          "explanation": "Julius Caesar was a dictator of Rome, never an emperor. He was killed in 44 BCE, before the empire began.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Julius_Caesar"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-12-01-q2",
+      "prompt": "Name a republic of the Soviet Union.",
+      "answers": [
+        {
+          "canonical": "Russia",
+          "aliases": [
+            "Russian SFSR",
+            "Soviet Russia"
+          ],
+          "prior_share": 0.28,
+          "explanation": "The largest and most powerful republic of the USSR.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Russian_Soviet_Federative_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Ukraine",
+          "aliases": [],
+          "prior_share": 0.22,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Ukrainian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Kazakhstan",
+          "aliases": [],
+          "prior_share": 0.1,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Kazakh_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Belarus",
+          "aliases": [
+            "Belorussia",
+            "Byelorussia"
+          ],
+          "prior_share": 0.08,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Byelorussian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Georgia",
+          "aliases": [],
+          "prior_share": 0.06,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Georgian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Uzbekistan",
+          "aliases": [],
+          "prior_share": 0.04,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Uzbek_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Latvia",
+          "aliases": [],
+          "prior_share": 0.03,
+          "explanation": "Occupied and annexed by the USSR in 1940. Independence was restored in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Latvian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Lithuania",
+          "aliases": [],
+          "prior_share": 0.03,
+          "explanation": "Occupied and annexed by the USSR in 1940. Independence was restored in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Lithuanian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Estonia",
+          "aliases": [],
+          "prior_share": 0.03,
+          "explanation": "Occupied and annexed by the USSR in 1940. Independence was restored in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Estonian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Armenia",
+          "aliases": [],
+          "prior_share": 0.025,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Armenian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Azerbaijan",
+          "aliases": [],
+          "prior_share": 0.02,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Azerbaijan_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Moldova",
+          "aliases": [
+            "Moldavia"
+          ],
+          "prior_share": 0.015,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Moldavian_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Kyrgyzstan",
+          "aliases": [
+            "Kirgiziya",
+            "Kirghizia"
+          ],
+          "prior_share": 0.01,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Kirghiz_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Tajikistan",
+          "aliases": [],
+          "prior_share": 0.01,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Tajik_Soviet_Socialist_Republic"
+          ]
+        },
+        {
+          "canonical": "Turkmenistan",
+          "aliases": [],
+          "prior_share": 0.01,
+          "explanation": "A republic of the USSR until it dissolved in 1991.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Turkmen_Soviet_Socialist_Republic"
+          ]
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "id": "2026-12-01-q3",
+      "prompt": "Name a pharaoh of ancient Egypt.",
+      "answers": [
+        {
+          "canonical": "Tutankhamun",
+          "aliases": [
+            "King Tut",
+            "Tut",
+            "Tutankhamen"
+          ],
+          "prior_share": 0.3,
+          "explanation": "Boy king of the 18th dynasty, ruled about 1332 to 1323 BCE. His tomb was found nearly intact in 1922.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Tutankhamun"
+          ]
+        },
+        {
+          "canonical": "Ramesses II",
+          "aliases": [
+            "Ramses II",
+            "Rameses II",
+            "Ramesses the Great",
+            "Ramses the Great"
+          ],
+          "prior_share": 0.25,
+          "explanation": "19th dynasty, ruled about 1279 to 1213 BCE, one of the longest reigns in Egyptian history.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Ramesses_II"
+          ]
+        },
+        {
+          "canonical": "Cleopatra",
+          "aliases": [
+            "Cleopatra VII"
+          ],
+          "prior_share": 0.15,
+          "explanation": "Cleopatra VII, last active ruler of Ptolemaic Egypt, died in 30 BCE.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Cleopatra"
+          ]
+        },
+        {
+          "canonical": "Khufu",
+          "aliases": [
+            "Cheops"
+          ],
+          "prior_share": 0.06,
+          "explanation": "4th dynasty king who built the Great Pyramid of Giza.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Khufu"
+          ]
+        },
+        {
+          "canonical": "Hatshepsut",
+          "aliases": [],
+          "prior_share": 0.06,
+          "explanation": "A woman who ruled as pharaoh in the 18th dynasty, about 1479 to 1458 BCE.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Hatshepsut"
+          ]
+        },
+        {
+          "canonical": "Akhenaten",
+          "aliases": [
+            "Akhenaton"
+          ],
+          "prior_share": 0.04,
+          "explanation": "18th dynasty king who promoted the worship of one god, the Aten.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Akhenaten"
+          ]
+        },
+        {
+          "canonical": "Thutmose III",
+          "aliases": [
+            "Thutmosis III",
+            "Tuthmosis III"
+          ],
+          "prior_share": 0.02,
+          "explanation": "18th dynasty king who led many campaigns and expanded Egypt's empire.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Thutmose_III"
+          ]
+        },
+        {
+          "canonical": "Seti I",
+          "aliases": [
+            "Sethos I",
+            "Seti the First"
+          ],
+          "prior_share": 0.01,
+          "explanation": "19th dynasty king and father of Ramesses II.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Seti_I"
+          ]
+        },
+        {
+          "canonical": "Djoser",
+          "aliases": [
+            "Zoser"
+          ],
+          "prior_share": 0.01,
+          "explanation": "3rd dynasty king whose step pyramid at Saqqara is among the oldest large stone buildings.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Djoser"
+          ]
+        }
+      ],
+      "rejected": [
+        {
+          "canonical": "Nefertiti",
+          "aliases": [],
+          "explanation": "Nefertiti was a queen, wife of Akhenaten. Whether she ruled as pharaoh herself is disputed, so it does not count here.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Nefertiti"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-12-01-q4",
+      "prompt": "Name a battle of World War II.",
+      "answers": [
+        {
+          "canonical": "Battle of Stalingrad",
+          "aliases": [
+            "Stalingrad"
+          ],
+          "prior_share": 0.22,
+          "explanation": "August 1942 to February 1943. The Soviet victory was a turning point on the Eastern Front.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Stalingrad"
+          ]
+        },
+        {
+          "canonical": "Battle of Normandy",
+          "aliases": [
+            "Normandy",
+            "D-Day",
+            "Normandy landings",
+            "Operation Overlord"
+          ],
+          "prior_share": 0.18,
+          "explanation": "Allied invasion of Normandy, begun on 6 June 1944 (D-Day).",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Operation_Overlord"
+          ]
+        },
+        {
+          "canonical": "Battle of Britain",
+          "aliases": [],
+          "prior_share": 0.08,
+          "explanation": "1940 air campaign in which the RAF defended Britain against the German air force.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Britain"
+          ]
+        },
+        {
+          "canonical": "Battle of Midway",
+          "aliases": [
+            "Midway"
+          ],
+          "prior_share": 0.08,
+          "explanation": "June 1942 naval battle where the US sank four Japanese aircraft carriers.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Midway"
+          ]
+        },
+        {
+          "canonical": "Battle of the Bulge",
+          "aliases": [
+            "Ardennes Offensive"
+          ],
+          "prior_share": 0.05,
+          "explanation": "German offensive in the Ardennes, December 1944 to January 1945.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_the_Bulge"
+          ]
+        },
+        {
+          "canonical": "Battle of Kursk",
+          "aliases": [
+            "Kursk"
+          ],
+          "prior_share": 0.04,
+          "explanation": "July 1943, a huge tank battle in the Soviet Union.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Kursk"
+          ]
+        },
+        {
+          "canonical": "Battle of Berlin",
+          "aliases": [
+            "Berlin"
+          ],
+          "prior_share": 0.04,
+          "explanation": "April to May 1945, one of the last major battles in Europe.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Berlin"
+          ]
+        },
+        {
+          "canonical": "Battle of Iwo Jima",
+          "aliases": [
+            "Iwo Jima"
+          ],
+          "prior_share": 0.04,
+          "explanation": "February to March 1945, US Marines captured the Japanese island.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Iwo_Jima"
+          ]
+        },
+        {
+          "canonical": "Battle of El Alamein",
+          "aliases": [
+            "El Alamein",
+            "Alamein"
+          ],
+          "prior_share": 0.03,
+          "explanation": "1942 battles in Egypt. The British win in the second battle pushed Axis forces out of Egypt.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Second_Battle_of_El_Alamein",
+            "https://en.wikipedia.org/wiki/First_Battle_of_El_Alamein"
+          ]
+        },
+        {
+          "canonical": "Guadalcanal",
+          "aliases": [
+            "Battle of Guadalcanal",
+            "Guadalcanal campaign"
+          ],
+          "prior_share": 0.015,
+          "explanation": "1942 to 1943 campaign in the Solomon Islands, the first big Allied offensive in the Pacific.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Guadalcanal_campaign"
+          ]
+        },
+        {
+          "canonical": "Battle of Monte Cassino",
+          "aliases": [
+            "Monte Cassino"
+          ],
+          "prior_share": 0.01,
+          "explanation": "1944 battles in Italy around the hilltop abbey, which was destroyed by bombing.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Monte_Cassino"
+          ]
+        },
+        {
+          "canonical": "Battle of Okinawa",
+          "aliases": [
+            "Okinawa"
+          ],
+          "prior_share": 0.01,
+          "explanation": "April to June 1945, the largest amphibious assault of the Pacific war.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Battle_of_Okinawa"
+          ]
+        }
+      ],
+      "rejected": [
+        {
+          "canonical": "Pearl Harbor",
+          "aliases": [
+            "Attack on Pearl Harbor"
+          ],
+          "explanation": "Pearl Harbor (7 December 1941) was a surprise attack, not a battle, so it does not count here.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Attack_on_Pearl_Harbor"
+          ]
+        },
+        {
+          "canonical": "Dunkirk",
+          "aliases": [
+            "Battle of Dunkirk",
+            "Dunkirk evacuation",
+            "Operation Dynamo"
+          ],
+          "explanation": "Dunkirk was an evacuation in 1940, part of the Battle of France, so it does not count here.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Dunkirk_evacuation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-12-01-q5",
+      "prompt": "Name a wife of Henry VIII.",
+      "answers": [
+        {
+          "canonical": "Anne Boleyn",
+          "aliases": [
+            "Boleyn"
+          ],
+          "prior_share": 0.4,
+          "explanation": "Second wife, married in 1533 and executed in 1536.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Anne_Boleyn"
+          ]
+        },
+        {
+          "canonical": "Catherine of Aragon",
+          "aliases": [
+            "Katherine of Aragon",
+            "Catherine Aragon",
+            "Aragon"
+          ],
+          "prior_share": 0.25,
+          "explanation": "First wife, married in 1509. The marriage was annulled in 1533.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Catherine_of_Aragon"
+          ]
+        },
+        {
+          "canonical": "Jane Seymour",
+          "aliases": [
+            "Jane",
+            "Seymour"
+          ],
+          "prior_share": 0.12,
+          "explanation": "Third wife and mother of Edward VI. She died in 1537 after childbirth.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Jane_Seymour"
+          ]
+        },
+        {
+          "canonical": "Anne of Cleves",
+          "aliases": [
+            "Anne Cleves",
+            "Cleves"
+          ],
+          "prior_share": 0.08,
+          "explanation": "Fourth wife, married in 1540. The marriage was annulled within months.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Anne_of_Cleves"
+          ]
+        },
+        {
+          "canonical": "Catherine Howard",
+          "aliases": [
+            "Katherine Howard",
+            "Howard"
+          ],
+          "prior_share": 0.07,
+          "explanation": "Fifth wife, married in 1540 and executed in 1542.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Catherine_Howard"
+          ]
+        },
+        {
+          "canonical": "Catherine Parr",
+          "aliases": [
+            "Katherine Parr",
+            "Kateryn Parr",
+            "Katharine Parr",
+            "Parr"
+          ],
+          "prior_share": 0.06,
+          "explanation": "Sixth wife, married in 1543. She outlived Henry.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Catherine_Parr"
+          ]
+        }
+      ],
+      "rejected": [
+        {
+          "canonical": "Catherine",
+          "aliases": [
+            "Katherine",
+            "Katharine"
+          ],
+          "explanation": "Which one? Three of Henry's wives were called Catherine. Give a full name.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Wives_of_Henry_VIII"
+          ]
+        },
+        {
+          "canonical": "Anne",
+          "aliases": [],
+          "explanation": "Which one? Two of Henry's wives were called Anne. Give a full name.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Wives_of_Henry_VIII"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2026-12-01-q6",
+      "prompt": "Name a Chinese dynasty.",
+      "strip": [
+        "dynasty"
+      ],
+      "answers": [
+        {
+          "canonical": "Ming",
+          "aliases": [],
+          "prior_share": 0.28,
+          "explanation": "1368 to 1644, ruled China after the Mongol Yuan dynasty.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Ming_dynasty"
+          ]
+        },
+        {
+          "canonical": "Qing",
+          "aliases": [
+            "Ching",
+            "Manchu"
+          ],
+          "prior_share": 0.18,
+          "explanation": "Ruled until 1912, the last imperial dynasty of China.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Qing_dynasty"
+          ]
+        },
+        {
+          "canonical": "Han",
+          "aliases": [],
+          "prior_share": 0.15,
+          "explanation": "206 BCE to 220 CE, gave the Han Chinese their name.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Han_dynasty"
+          ]
+        },
+        {
+          "canonical": "Tang",
+          "aliases": [],
+          "prior_share": 0.12,
+          "explanation": "618 to 907, often seen as a golden age of poetry and culture.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Tang_dynasty"
+          ]
+        },
+        {
+          "canonical": "Song",
+          "aliases": [
+            "Sung"
+          ],
+          "prior_share": 0.07,
+          "explanation": "960 to 1279, known for advances in printing and early paper money.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Song_dynasty"
+          ]
+        },
+        {
+          "canonical": "Qin",
+          "aliases": [
+            "Chin"
+          ],
+          "prior_share": 0.05,
+          "explanation": "221 to 206 BCE, unified China under its first emperor.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Qin_dynasty"
+          ]
+        },
+        {
+          "canonical": "Zhou",
+          "aliases": [
+            "Chou"
+          ],
+          "prior_share": 0.03,
+          "explanation": "About 1046 to 256 BCE, the longest-lasting Chinese dynasty.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Zhou_dynasty"
+          ]
+        },
+        {
+          "canonical": "Shang",
+          "aliases": [],
+          "prior_share": 0.03,
+          "explanation": "About 1600 to 1046 BCE, with the earliest Chinese writing on oracle bones.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Shang_dynasty"
+          ]
+        },
+        {
+          "canonical": "Yuan",
+          "aliases": [],
+          "prior_share": 0.03,
+          "explanation": "1271 to 1368, founded by the Mongol ruler Kublai Khan.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Yuan_dynasty"
+          ]
+        },
+        {
+          "canonical": "Xia",
+          "aliases": [],
+          "prior_share": 0.01,
+          "explanation": "Traditionally the first dynasty, about 2070 BCE. Historians debate how much of it is legend.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Xia_dynasty"
+          ]
+        },
+        {
+          "canonical": "Sui",
+          "aliases": [],
+          "prior_share": 0.01,
+          "explanation": "581 to 618, a short dynasty that reunified China and built the Grand Canal.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Sui_dynasty"
+          ]
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "id": "2026-12-01-q7",
+      "prompt": "Name an explorer from the Age of Discovery (c. 1400 to 1600).",
+      "answers": [
+        {
+          "canonical": "Christopher Columbus",
+          "aliases": [
+            "Columbus",
+            "Cristoforo Colombo"
+          ],
+          "prior_share": 0.4,
+          "explanation": "Italian sailor who reached the Americas in 1492 for Spain.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Christopher_Columbus"
+          ]
+        },
+        {
+          "canonical": "Ferdinand Magellan",
+          "aliases": [
+            "Magellan",
+            "Fernao de Magalhaes"
+          ],
+          "prior_share": 0.2,
+          "explanation": "Portuguese explorer who led the first voyage around the world, 1519 to 1522. He was killed in the Philippines in 1521, but his crew finished the voyage.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Ferdinand_Magellan"
+          ]
+        },
+        {
+          "canonical": "Vasco da Gama",
+          "aliases": [
+            "da Gama",
+            "Gama"
+          ],
+          "prior_share": 0.12,
+          "explanation": "Portuguese explorer who reached India by sea in 1498.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Vasco_da_Gama"
+          ]
+        },
+        {
+          "canonical": "Amerigo Vespucci",
+          "aliases": [
+            "Vespucci"
+          ],
+          "prior_share": 0.04,
+          "explanation": "Italian explorer after whom America is named.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Amerigo_Vespucci"
+          ]
+        },
+        {
+          "canonical": "Bartolomeu Dias",
+          "aliases": [
+            "Bartholomew Diaz",
+            "Dias",
+            "Diaz"
+          ],
+          "prior_share": 0.03,
+          "explanation": "Portuguese explorer who rounded the Cape of Good Hope in 1488.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Bartolomeu_Dias"
+          ]
+        },
+        {
+          "canonical": "Pedro Alvares Cabral",
+          "aliases": [
+            "Cabral"
+          ],
+          "prior_share": 0.02,
+          "explanation": "Portuguese explorer who reached Brazil in 1500.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Pedro_%C3%81lvares_Cabral"
+          ]
+        },
+        {
+          "canonical": "Vasco Nunez de Balboa",
+          "aliases": [
+            "Balboa"
+          ],
+          "prior_share": 0.02,
+          "explanation": "Spanish explorer, first European to see the Pacific from the Americas, in 1513.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Vasco_N%C3%BA%C3%B1ez_de_Balboa"
+          ]
+        },
+        {
+          "canonical": "John Cabot",
+          "aliases": [
+            "Giovanni Caboto",
+            "Cabot"
+          ],
+          "prior_share": 0.02,
+          "explanation": "Italian-born explorer who sailed from England and reached North America in 1497.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/John_Cabot"
+          ]
+        },
+        {
+          "canonical": "Jacques Cartier",
+          "aliases": [
+            "Cartier"
+          ],
+          "prior_share": 0.01,
+          "explanation": "French explorer who sailed up the St. Lawrence River in the 1530s.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Jacques_Cartier"
+          ]
+        }
+      ],
+      "rejected": [
+        {
+          "canonical": "Marco Polo",
+          "aliases": [
+            "Polo"
+          ],
+          "explanation": "Marco Polo travelled in the 13th century, before the Age of Discovery.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/Marco_Polo"
+          ]
+        },
+        {
+          "canonical": "James Cook",
+          "aliases": [
+            "Captain Cook",
+            "Cook"
+          ],
+          "explanation": "James Cook sailed in the 18th century, after the Age of Discovery.",
+          "sources": [
+            "https://en.wikipedia.org/wiki/James_Cook"
+          ]
+        }
+      ]
+    }
+  ]
+}
