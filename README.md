@@ -17,11 +17,22 @@ npm test
 ## Scoring
 `points = min(100, round(15 * log2(1 / prior_share)))`. Half as common = 15 more points.
 
+## How a game plays
+- Type an answer and press Enter. A wrong or unknown answer does not count: you get a hint and can try again until the 20 seconds are over.
+- A typo never counts by itself. You get "Did you mean ...": press Enter to fill it in, Enter again to confirm (or click the suggestion).
+- After a correct answer the archaeologist digs. Points, what he found and how rare the answer was show up when the find is out of the ground (any key or tap skips the dig). The 7 finds stay on the bench.
+- The end screen shows your score on an estimated curve, your rank, and every question: tap a question to see every possible answer, with rarity filters, a search box, explanations and sources.
+- The curve is an estimate from the predicted answer shares (`js/distribution.js`), not real players.
+
 ## Known limits and later
 - All answers and scores are in the source, so players can peek. Move scoring to a backend later.
-- Later, real player data: `mixed_share = (k * prior_share + times_chosen) / (k + total_answers)`. Not built in v1.
-- `explanation` and `sources` are stored in the data but not shown in v1.
-- Sources per answer are currently the list page per question. Check them before publishing.
+- Later, real player data: `mixed_share = (k * prior_share + times_chosen) / (k + total_answers)`. Not built yet.
+- The `prior_share` values are estimates. Sources per answer are Wikipedia pages; check them before publishing (`docs/bronnen-controle.md`).
+- Sound is synthesized in the browser (no audio files); the mute button remembers its setting.
 
 ## Style kits
-`kit/` is the 8-bit style (default), `kit-b/` the 2d style. Open `?kit=b` to compare, for example `/?day=2026-12-01&kit=b`. Both have the same hooks and JS API (`dig-scene.js`), so the choice is one folder. When one wins, delete the other and the `KIT` lines at the top of `js/main.js`. Rules for each style are in `kit/STYLE.md` and `kit-b/STYLE.md`.
+`kit/` is the 8-bit style (default), `kit-b/` the fullscreen 2d style with the animated archaeologist, sound, the kept finds bench and the new end screen. Open `?kit=b`, for example `/?day=2026-12-01&kit=b`. Both have the same hooks, so the choice is one folder. When one wins, delete the other and the `KIT` lines at the top of `js/main.js`. Rules for each style are in `kit/STYLE.md` and `kit-b/STYLE.md`; the 2d kit also has `kit-b/FULLSCREEN.md` (API and notes) and `kit-b/demo.html`.
+
+Panel transparency of the 2d kit (add to the address): default is very light glass, `&glass=soft` the previous light glass, `&glass=clear` no panel background at all, `&glass=classic` the kit's own darker glass.
+
+Style changes are made in a separate chat that delivers a new `kit-b/`. Our own changes to that kit (the camera in `dig-scene.js`, the dig timing, the centred intro and end screens) must be kept when it is replaced; see git history for `kit-b/dig-scene.js`.

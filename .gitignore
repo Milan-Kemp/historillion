@@ -1,2 +1,4 @@
 .claude/
 node_modules/
+# loose style-kit downloads and their unpacked folders (the kits live in kit/ and kit-b/)
+/historillion-*
