@@ -9,3 +9,6 @@ button { cursor: pointer; margin-top: .5rem; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .3rem; border-bottom: 1px solid #ccc; vertical-align: top; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+.msg { min-height: 3em; }
+.dig { font-size: 1.25rem; }

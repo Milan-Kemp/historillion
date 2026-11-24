@@ -1,5 +1,5 @@
 import { t } from "./strings/en.js";
-import { match } from "./matching.js";
+import { match, suggest } from "./matching.js";
 import { points, rarityKey } from "./scoring.js";
 
 const SECONDS = 20;
@@ -32,10 +32,11 @@ function grade(input, question) {
   const m = match(input, question);
   if (m.kind === "answer") {
     const share = m.entry.prior_share;
-    return { pts: points(share), rarity: t.rarity[rarityKey(share)], share, name: m.entry.canonical, text: m.entry.explanation };
+    const key = rarityKey(share);
+    return { pts: points(share), rarity: t.rarity[key], share, name: m.entry.canonical, text: m.entry.explanation, dig: t.dig[key] };
   }
-  if (m.kind === "rejected") return { pts: 0, rarity: t.rejected, text: m.entry.explanation };
-  return { pts: 0, rarity: "-", text: input.trim() ? t.noMatch : t.empty };
+  if (m.kind === "rejected") return { pts: 0, rarity: t.rejected, rejected: true, text: m.entry.explanation, dig: t.dig.none };
+  return { pts: 0, rarity: "-", text: input.trim() ? t.noMatch : t.empty, dig: t.dig.none };
 }
 
 function intro(day) {
@@ -53,28 +54,51 @@ function ask(day, i, results) {
   const input = el("input", { type: "text", autocomplete: "off", autocapitalize: "off", spellcheck: false, placeholder: t.placeholder, "aria-label": question.prompt });
   input.setAttribute("autocorrect", "off"); // a property in Chrome (boolean), so it must be set as attribute
   const form = el("form", {}, input, el("button", { type: "submit", textContent: t.submit }));
+  const msg = el("p", { className: "msg", role: "status" }); // live region: screen readers announce the hint
   show(
     el("p", { textContent: t.question(i + 1, day.questions.length) }),
     el("h2", { textContent: question.prompt }),
-    timer, form,
+    timer, form, msg,
   );
   input.focus();
 
   const deadline = performance.now() + SECONDS * 1000;
   let done = false;
-  const submit = () => {
-    if (done) return;
+  let last = null; // last wrong try, shown on the feedback screen if time runs out
+  const finish = (typed, g) => {
     done = true;
     clearInterval(tick);
-    const typed = input.value;
-    const g = grade(typed, question);
     results.push({ prompt: question.prompt, typed, ...g });
     feedback(day, i, results);
+  };
+  // A real answer ends the question. A wrong or unknown one only shows a hint: you can keep trying.
+  const submit = () => {
+    if (done) return;
+    const typed = input.value;
+    if (!typed.trim()) { msg.textContent = t.typeSomething; return; }
+    const g = grade(typed, question);
+    if (g.name) return finish(typed, g);
+    last = { typed, g };
+    const hint = g.rejected ? null : suggest(typed, question);
+    if (hint) {
+      const yes = el("button", { type: "button", textContent: `→ ${hint.canonical}`, onclick: () => { input.value = hint.canonical; submit(); } });
+      msg.replaceChildren(`${t.didYouMean} `, yes);
+    } else msg.textContent = g.rejected ? g.text : t.notRecognised;
+    input.value = "";
+    input.focus();
+  };
+  const timeUp = () => {
+    if (done) return;
+    const typed = input.value;
+    const g = typed.trim() ? grade(typed, question) : null;
+    if (g?.name) return finish(typed, g);
+    const l = g ? { typed, g } : last;
+    finish(l?.typed ?? "", l?.g ?? grade("", question));
   };
   const tick = setInterval(() => {
     const left = Math.ceil((deadline - performance.now()) / 1000);
     timer.textContent = t.seconds(Math.max(left, 0));
-    if (left <= 0) submit(); // time is up: submit whatever is typed
+    if (left <= 0) timeUp();
   }, 100);
   form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
 }
@@ -87,6 +111,7 @@ function feedback(day, i, results) {
     el("h2", { textContent: r.prompt }),
     el("p", { textContent: `${t.yourAnswer}: ${r.typed.trim() || "-"}` }),
     ...(r.name ? [el("p", { textContent: t.matchedAs(r.name) })] : []),
+    el("p", { className: "dig", textContent: t.youDug(r.dig.tool, r.dig.find) }),
     el("p", { className: "points", textContent: t.points(r.pts) }),
     el("p", { textContent: r.rarity + (r.share ? `. ${t.shareOf(Math.round(r.share * 100))}` : "") }),
     el("p", { textContent: r.text }),
@@ -100,12 +125,13 @@ function end(results) {
     el("td", { textContent: r.prompt }),
     el("td", { textContent: r.typed.trim() || "-" }),
     el("td", { textContent: r.rarity }),
+    el("td", { textContent: r.dig.find }),
     el("td", { textContent: r.pts }),
   ));
   show(
     el("h1", { textContent: `${t.total}: ${total}` }),
     el("table", {},
-      el("thead", {}, el("tr", {}, ...[t.questionCol, t.yourAnswer, t.rarityCol, t.pointsCol].map((h) => el("th", { textContent: h })))),
+      el("thead", {}, el("tr", {}, ...[t.questionCol, t.yourAnswer, t.rarityCol, t.findCol, t.pointsCol].map((h) => el("th", { textContent: h })))),
       el("tbody", {}, ...rows)),
     el("button", { textContent: t.playAgain, onclick: () => location.reload() }),
   );

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { normalize, distance, match } from "../js/matching.js";
+import { normalize, distance, match, suggest } from "../js/matching.js";
 import { points, rarityKey } from "../js/scoring.js";
 
 const day = JSON.parse(readFileSync(new URL("../data/days/2026-12-01.json", import.meta.url)));
@@ -26,21 +26,20 @@ test("exact match on canonical and alias", () => {
   assert.equal(hit(1, "the emperor nero").kind, "none"); // extra words: no guessing
 });
 
-test("fuzzy match fixes typos, grows with word length", () => {
-  assert.equal(hit(1, "Caligla").entry.canonical, "Caligula"); // 1 missing letter
-  assert.equal(hit(1, "Marcus Aurelious").entry.canonical, "Marcus Aurelius");
-  assert.equal(hit(7, "Colombus").entry.canonical, "Christopher Columbus");
-  assert.equal(hit(3, "Ramessess II").entry.canonical, "Ramesses II");
-  assert.equal(hit(1, "Nreo").entry.canonical, "Nero"); // swap, 1 edit
+test("a typo of a valid answer is not counted, but suggested", () => {
+  const sg = (n, text) => suggest(text, q(n))?.canonical;
+  assert.equal(hit(1, "Caligla").kind, "none");
+  assert.equal(sg(1, "Caligla"), "Caligula");
+  assert.equal(sg(1, "Nreo"), "Nero"); // swap
+  assert.equal(sg(1, "Marcus Aurelious"), "Marcus Aurelius");
+  assert.equal(sg(7, "Colombus"), "Christopher Columbus");
+  assert.equal(sg(3, "Ramessess II"), "Ramesses II");
+  assert.equal(sg(6, "Hna"), "Han");
+  assert.equal(sg(1, "banana"), undefined);
 });
 
-test("short words must be exact", () => {
-  assert.equal(hit(6, "Hna").kind, "none"); // would be 2 edits from Han, and Han is short
-  assert.equal(hit(6, "Han").entry.canonical, "Han");
-});
-
-test("a tie between two answers is no match", () => {
-  assert.equal(hit(6, "Ning").kind, "none"); // 1 edit from both Ming and Qing
+test("a tie between two answers gives no suggestion", () => {
+  assert.equal(suggest("Ning", q(6)), null); // 1 edit from both Ming and Qing
 });
 
 test("optional question-level stripping: 'Ming dynasty'", () => {
@@ -97,4 +96,14 @@ test("data: no two entries in a question share a normalized form", () => {
       }
     }
   }
+});
+
+test("suggest: close miss gives a hint, far miss and ties do not", async () => {
+  const { suggest } = await import("../js/matching.js");
+  const q = JSON.parse(readFileSync(new URL("../data/days/2026-12-01.json", import.meta.url))).questions[0];
+  assert.equal(match("Nerro", q).kind, "none"); // a typo never counts by itself
+  assert.equal(suggest("Nerro", q)?.canonical, "Nero");
+  assert.equal(suggest("Nerooo", q)?.canonical, "Nero"); // one edit beyond the limit: hint
+  assert.equal(suggest("banana", q), null);
+  assert.equal(suggest("", q), null);
 });

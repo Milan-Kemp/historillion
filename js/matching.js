@@ -33,6 +33,26 @@ export function threshold(length) {
   return length <= 3 ? 0 : length <= 8 ? 1 : 2;
 }
 
+// For a "none" result: the one valid answer that is one edit beyond the fuzzy limit, as a "did you mean" hint.
+// shortcut: one extra edit only and no ties, so the hint cannot be used to fish for answers; tune after playtests.
+export function suggest(input, question) {
+  const strip = question.strip ?? [];
+  const typed = normalize(input, strip);
+  if (!typed) return null;
+  let best = null;
+  let tie = false;
+  for (const entry of question.answers) {
+    const d = Math.min(...[entry.canonical, ...entry.aliases].map((f) => {
+      const n = normalize(f, strip);
+      return distance(typed, n) <= threshold(n.length) + 1 ? distance(typed, n) : Infinity;
+    }));
+    if (d === Infinity) continue;
+    if (!best || d < best.d) { best = { entry, d }; tie = false; }
+    else if (d === best.d) tie = true;
+  }
+  return best && !tie ? best.entry : null;
+}
+
 // Returns { kind: "answer" | "rejected" | "none", entry, how: "exact" | "fuzzy" }.
 export function match(input, question) {
   const strip = question.strip ?? [];
@@ -62,5 +82,7 @@ export function match(input, question) {
   }
   // Two equally close answers: guessing would be unfair, so no match.
   if (!best || tie) return { kind: "none" };
+  // A typo of a valid answer never counts by itself: suggest() offers "did you mean" and the player confirms.
+  if (best.kind === "answer") return { kind: "none" };
   return { kind: best.kind, entry: best.entry, how: "fuzzy" };
 }
