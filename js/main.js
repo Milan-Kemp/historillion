@@ -8,6 +8,9 @@ import { resultsList } from "./answers.js";
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
+// ?glass=clear (no panel background, no blur) or ?glass=light (very faint) to test how see-through the panels can get. Without it the kit's glass applies.
+const GLASS = { clear: ["transparent", "none"], light: ["rgba(24, 12, 20, 0.16)", "blur(6px) brightness(0.8)"] }[new URLSearchParams(location.search).get("glass")];
+if (GLASS) { document.documentElement.style.setProperty("--glass", GLASS[0]); document.documentElement.style.setProperty("--blur", GLASS[1]); }
 const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).

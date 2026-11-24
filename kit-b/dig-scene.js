@@ -486,7 +486,7 @@ export function mountScene(parent = document.body, opts = {}) {
     let sFit = Math.floor((vh - 8 - top) / need);
     let cx = vw / 2;                                                    // the screen x the stage is centred on
     const SIDE_W = Math.min(480, vw * 0.36);
-    if (!compact && vw >= 900 && (sFit < 3 || hudEl.hidden)) {          // a wide screen that would only get zoom 2 under the panel (about 1280 x 720), or the intro / end screen: the panel moves to the right, the stage (and the cheering man) gets the left part and a bigger zoom
+    if (!compact && vw >= 900 && sFit < 3) {          // (v6 also did this for the intro and end screens; the user wants those centred)          // a wide screen that would only get zoom 2 under the panel (about 1280 x 720), or the intro / end screen: the panel moves to the right, the stage (and the cheering man) gets the left part and a bigger zoom
       root_.classList.add("side");
       cx = (vw - SIDE_W - 36) / 2;
       ptop = hudBottom() + 10;
