@@ -319,7 +319,9 @@ export function mountScene(parent = document.body, opts = {}) {
     const sFit = Math.floor(Math.max(vh - 8 - top, need * 2) / need);
     const sWide = Math.max(Math.floor(vw / 125), 2);                   // the stage is about 125 art pixels wide
     const s = Math.max(sMin, Math.min(4, sFit, sWide));
-    const sy = Math.round((top + Math.max(vh - 8 - top - need * s, 0) / 2) / s - 12);   // the first row we need is stage row 12
+    // The width needs a bigger zoom than the height allows (laptop windows, about 1366 x 650): let the stage rise under the panel instead of falling off the bottom.
+    const topUsed = s > sFit ? Math.min(top, vh - 8 - need * s) : top;
+    const sy = Math.round((topUsed + Math.max(vh - 8 - topUsed - need * s, 0) / 2) / s - 12);   // the first row we need is stage row 12
     const kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;     // on-screen keyboard (iOS keeps the layout viewport)
     root.style.setProperty("--s", s);
     root.style.setProperty("--sy", sy);
