@@ -54,7 +54,7 @@ export const t = {
     { from: 350, name: "Site Supervisor", line: "Real finds, real sweat. Nice." },
     { from: 450, name: "Field Archaeologist", line: "The museum is calling." },
     { from: 550, name: "Lead Excavator", line: "Even the trucks listen to you." },
-    { from: 640, name: "Legend of the Dig", line: "One in a million. Seriously." },
+    { from: 640, name: "One in a Historillion", line: "The museum wants to meet you." },
   ],
   findsHint: "Tap a question to see every possible answer.",
   answersFilter: "Filter by rarity",
