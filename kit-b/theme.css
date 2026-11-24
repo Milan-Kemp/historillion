@@ -35,10 +35,10 @@
   --ok: #bace78;          /* LEAF_5   9.7:1 timer */
   --focus: #ffee96;       /* GOLD_4 */
   --ink: #14080e;
-  --glass: rgba(24, 12, 20, 0.78);            /* the panels: dark, see-through; text contrast is measured against the brightest thing that can be behind them */
-  --glass-line: rgba(250, 246, 235, 0.2);
-  --glass-soft: rgba(250, 246, 235, 0.07);   /* rows, chips and hints inside a panel */
-  --blur: blur(7px) saturate(0.9);
+  --glass: rgba(24, 12, 20, 0.38);            /* the panels: really see-through (38 %). What is behind them is blurred and dimmed by the backdrop filter, so text stays readable; measured on the real scene */
+  --glass-line: rgba(250, 246, 235, 0.16);
+  --glass-soft: rgba(250, 246, 235, 0.06);   /* rows, chips and hints inside a panel */
+  --blur: blur(12px) brightness(0.55) saturate(1.1);   /* the scene behind a panel: soft, a little darker, a little richer */
   --font-display: "Pixel Digits", "Pixelify Sans", "Sprites Pixel", ui-monospace, "Courier New", monospace;     /* short words, numbers, labels, the question */
   --font-text: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;  /* sentences */
   --font-art: "Sprites Pixel", ui-monospace, monospace;                                             /* the 1:1 pixel label that floats over the scene */
@@ -92,10 +92,10 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
 @keyframes sp-once { to { background-position-x: calc(var(--n1) * var(--fw) * -1); } }
 @keyframes sp-loop { to { background-position-x: calc(var(--n) * var(--fw) * -1); } }
 #scene .sprite.still { animation: none; background-position-x: calc(var(--last, 0) * var(--fw) * -1); }
-#scene .man { --fw: 128px; left: 2px; top: 20px; width: 128px; height: 80px; background-image: url("scene/man.png"); background-size: 1024px 1600px;
-  background-position-y: calc(var(--row, 0) * -80px); }
-#scene .machine { --fw: 144px; left: 2px; top: 20px; width: 144px; height: 80px; background-image: url("scene/machine.png"); background-size: 1152px 320px;
-  background-position-y: calc(var(--row, 0) * -80px); }
+#scene .man { --fw: 144px; left: 2px; top: 4px; width: 144px; height: 112px; background-image: url("scene/man.png"); background-size: 1152px 2240px;
+  background-position-y: calc(var(--row, 0) * -112px); }
+#scene .machine { --fw: 144px; left: 2px; top: -4px; width: 144px; height: 104px; background-image: url("scene/machine.png"); background-size: 1152px 520px;
+  background-position-y: calc(var(--row, 0) * -104px); }
 #scene .find { --fw: 56px; left: 92px; top: 22px; width: 56px; height: 56px; background-image: url("scene/reveal.png"); background-size: 336px 280px;
   background-position-y: calc(var(--row, 0) * -56px); }
 #scene .sparkle { --fw: 56px; left: 92px; top: 22px; width: 56px; height: 56px; background-image: url("scene/sparkle.png"); background-size: 336px 56px; }
@@ -130,9 +130,11 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
 #scene .bird.b2 { top: calc(var(--oy) + 62px); animation: flap-b 0.42s steps(3) infinite, fly 61s linear 24s infinite; }
 @keyframes flap-b { to { background-position-x: -54px; } }
 /* the bench labels: real text on the face of the bench, 13 px on screen whatever the zoom, readable on a dark chip */
-#scene .slot-label { position: absolute; transform: translateX(-50%); white-space: nowrap; font: 700 calc(13px / var(--s, 3)) / 1.25 var(--font-text); letter-spacing: 0.02em; text-transform: uppercase;
-  color: var(--cream); background: rgba(20, 8, 14, 0.82); padding: 0 calc(4px / var(--s, 3)); border-radius: calc(3px / var(--s, 3)); pointer-events: none; }
-#scene .slot-label b { color: var(--gold); margin-right: 0.2em; }
+#scene .slot-label { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; text-align: center; white-space: nowrap;
+  font: 700 calc(12px / var(--s, 3)) / 1.1 var(--font-text); letter-spacing: -0.04em; text-transform: uppercase;
+  color: var(--cream); background: rgba(20, 8, 14, 0.8); padding: calc(1px / var(--s, 3)) 0; border-radius: calc(3px / var(--s, 3)); pointer-events: none; }
+#scene.z2 .slot-label span { display: none; }
+#scene.z2 .slot-label::after { content: attr(data-short); }
 #scene .slot-label[data-key="uncommon"] { color: var(--ok); }
 #scene .slot-label[data-key="rare"], #scene .slot-label[data-key="veryRare"] { color: var(--gold-lit); }
 #scene .slot-label[data-key="none"] { color: var(--cream-dark); }
@@ -156,9 +158,13 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
 #scene.dim-strong .vignette { background: radial-gradient(ellipse at 50% 58%, rgba(8, 4, 20, 0.12) 16%, rgba(8, 4, 20, 0.93) 100%); }
 #scene .world.rumble { animation: rumble 0.12s steps(2) infinite; }                      /* the pit shakes: 2 px, in two steps */
 @keyframes rumble { 0% { translate: 0 0; } 50% { translate: 2px 1px; } }
-#scene .machine-wrap, #scene .find-wrap { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#scene .man-wrap.walk { animation: man-walk 0.3s steps(5) both; }                                                   /* he walks between his working spots instead of jumping */
+@keyframes man-walk { from { translate: var(--shift) 0; } to { translate: 0 0; } }
+#scene .man-wrap, #scene .machine-wrap, #scene .find-wrap { position: absolute; left: 0; top: 0; width: 0; height: 0; }
 #scene .machine-wrap.slide-in { animation: slide-in var(--slide) steps(8) both; }                                   /* the machine rolls in from the left */
 @keyframes slide-in { from { translate: var(--from) 0; } to { translate: 0 0; } }
+#scene .machine-wrap.slide-out { animation: slide-out var(--slide) steps(7) forwards; }                               /* when the work is done the machine drives away, so he can step up to the pit */
+@keyframes slide-out { from { translate: 0 0; } to { translate: var(--to) 0; } }
 #scene .find-wrap.carry { animation: carry 0.25s steps(5) forwards; }                                                 /* he lifts the find out of the pit */
 #scene .find-wrap.carried { translate: -28px -26px; }
 @keyframes carry { to { translate: -28px -26px; } }
@@ -197,9 +203,11 @@ main {
   padding: 16px 16px 18px; color: var(--cream);
   background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
   border: 1px solid var(--glass-line); border-radius: 8px;
-  box-shadow: 0 10px 34px rgba(8, 4, 16, 0.45);
+  box-shadow: 0 10px 34px rgba(8, 4, 16, 0.35);
+  text-shadow: 0 1px 3px rgba(8, 4, 16, 0.7);              /* a soft shadow under every letter, for the busiest backgrounds */
 }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { main { background: rgba(24, 12, 20, 0.94); } }
+main button, main input { text-shadow: none; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { main, .hud-chip, .hud-q, .hud-score, .hud-sound, .answers { background: rgba(24, 12, 20, 0.92); } }
 .no-hud main { top: max(12px, env(safe-area-inset-top)); max-height: calc(var(--vh, 100dvh) * 0.82); }
 
 /* ---- type ---- */
@@ -254,7 +262,7 @@ main:focus-visible { outline-offset: calc(var(--px) * -2); }
 /* ---- timer (lives in the top bar): seconds in pixel digits, a segmented bar that drains by itself (CSS only), colour jump in the last quarter ---- */
 .timer {
   display: block; margin: 0 0 10px; padding: 5px 12px 14px;
-  font: 700 var(--px-1)/1 var(--font-display); color: var(--ok); background-color: rgba(14, 8, 18, 0.88);
+  font: 700 var(--px-1)/1 var(--font-display); color: var(--ok); background-color: rgba(14, 8, 18, 0.5); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
   background-image:
     repeating-linear-gradient(90deg, transparent 0 calc(5% - 2px), var(--ink) calc(5% - 2px) 5%),   /* the gaps between the 20 segments */
     linear-gradient(currentColor, currentColor);
@@ -360,7 +368,7 @@ td { padding: 8px; border-top: 1px solid var(--glass-line); vertical-align: top;
 @media (prefers-reduced-motion: reduce) {
   .timer { animation: urgent var(--secs) step-end forwards; background-image: none; padding-bottom: 8px; }
   button:active { transform: none; }
-  #scene .sprite, #scene .slot, #scene .grass-all, #scene .flicker, #scene .tarp, #scene .mid2, #scene .machine-wrap, #scene .find-wrap, #scene .clouds, #scene .twinkle, #scene .grass, #scene .bird, #scene .react, #scene .world { animation: none !important; }
+  #scene .man-wrap, #scene .sprite, #scene .slot, #scene .grass-all, #scene .flicker, #scene .tarp, #scene .mid2, #scene .machine-wrap, #scene .find-wrap, #scene .clouds, #scene .twinkle, #scene .grass, #scene .bird, #scene .react, #scene .world { animation: none !important; }
   #scene .vignette { display: none; }
   #scene .mid2 { opacity: 0; }
   #scene .bird { display: none; }
@@ -395,3 +403,29 @@ td { padding: 8px; border-top: 1px solid var(--glass-line); vertical-align: top;
 .answer-more { display: block; width: 100%; min-height: 44px; margin: var(--sp-2) 0 0; font: 700 var(--fs-body)/1 var(--font-text); color: var(--cream); background: var(--glass-soft); border: 1px solid var(--glass-line); border-radius: 6px; box-shadow: none; clip-path: none; text-transform: none; }
 .answer-source { display: inline-block; padding: 0 var(--sp-2) var(--sp-2); font-size: var(--fs-micro); line-height: 1.4; color: var(--cream-dark); overflow-wrap: anywhere; }
 .answer-source a { color: var(--ok); text-underline-offset: 2px; }
+
+.hud-chip, .hud-q, .hud-score, .timer { text-shadow: 0 1px 3px rgba(8, 4, 16, 0.7); }
+.answers { text-shadow: 0 1px 3px rgba(8, 4, 16, 0.7); }
+.answers button, .answers input { text-shadow: none; }
+
+
+/* ================= the top rank (scene.celebrate(), body.celebrate): shimmer on the rank name, a glowing curve marker, confetti ================= */
+.ranks li.now.top { background: rgba(255, 208, 56, 0.16); box-shadow: inset var(--px) 0 0 0 var(--gold), 0 0 20px rgba(255, 208, 56, 0.25); }
+.ranks li.now.top .rank-name { color: var(--gold-lit); }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .ranks li.now.top .rank-name { color: transparent; text-shadow: none; -webkit-background-clip: text; background-clip: text;
+    background-image: linear-gradient(100deg, #ffd038 0 38%, #fffbe0 48%, #ffd038 58% 100%); background-size: 260% 100%; animation: name-shimmer 2.4s steps(14) infinite; }
+}
+@keyframes name-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.curve.top .curve-dot { stroke: var(--gold-lit); stroke-width: 2; filter: drop-shadow(0 0 5px #ffd038); animation: marker-glow 1.2s steps(2) infinite; }
+@keyframes marker-glow { 50% { filter: drop-shadow(0 0 1px #ffd038); } }
+body.celebrate .total { color: #fff1a8; text-shadow: 0 0 14px rgba(255, 208, 56, 0.7), var(--px) var(--px) 0 var(--ink); }
+.confetti { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.confetti[hidden] { display: none; }
+.confetti i { position: absolute; left: var(--x); top: -12px; width: 6px; height: 6px; background: var(--c); animation: confetti-fall var(--d) steps(26) var(--w) infinite; }
+@keyframes confetti-fall { from { transform: translate(0, 0); } 50% { transform: translate(14px, 50vh); } to { transform: translate(-8px, 110vh); } }
+@media (prefers-reduced-motion: reduce) {                       /* static: the name stays gold, the marker keeps its glow, the confetti rests where it is */
+  .ranks li.now.top .rank-name { animation: none; background-image: none; color: var(--gold-lit); }
+  .curve.top .curve-dot { animation: none; }
+  .confetti i { animation: none; top: var(--y); }
+}

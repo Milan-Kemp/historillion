@@ -170,6 +170,7 @@ function end(day, results) {
   scene?.reset();
   scene?.sound.play("finish");
   const total = results.reduce((s, r) => s + r.pts, 0);
+  if (scene && total >= t.ranks.at(-1).from) scene.celebrate(); // the top rank, "One in a Historillion"
   if (endKit) {
     // The curve is an estimate from predicted answer shares (no real players yet); endCurve prints that too.
     const dist = scoreDistribution(day);

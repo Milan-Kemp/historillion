@@ -22,7 +22,7 @@ export const RANKS = [
   { from: 350, name: "Site Supervisor", line: "Real finds, real sweat. Nice." },
   { from: 450, name: "Field Archaeologist", line: "The museum is calling." },
   { from: 550, name: "Lead Excavator", line: "Even the trucks listen to you." },
-  { from: 640, name: "Legend of the Dig", line: "One in a million. Seriously." },
+  { from: 640, name: "One in a Historillion", line: "A perfect dig. Seriously." },
 ];
 
 const CURVE_LABELS = {
@@ -63,7 +63,7 @@ function smooth(points) {
 }
 
 // bins: [{ from, to, p }] over 0..max; total: the player's score; percentile: the share below the score (0..1). Returns <figure class="curve">.
-export function endCurve({ bins, total, percentile, max = 700, labels = {} }) {
+export function endCurve({ bins, total, percentile, max = 700, labels = {}, topFrom = 640 }) {
   const L = { ...CURVE_LABELS, ...labels };
   const W = 320, H = 150, X0 = 12, X1 = 308, BASE = 112, TOP = 22;
   const x = (score) => X0 + (Math.min(Math.max(score, 0), max) / max) * (X1 - X0);
@@ -72,7 +72,7 @@ export function endCurve({ bins, total, percentile, max = 700, labels = {} }) {
   const pts = bins.map((b) => [x((b.from + b.to) / 2), y(b.p)]);
   const pct = Math.round(percentile * 100);
 
-  const fig = el("figure", "curve");
+  const fig = el("figure", total >= topFrom ? "curve top" : "curve");                 // "top": the marker glows (CSS)
   const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L.aria(total, pct), class: "curve-svg" });
   s.append(svg("path", { class: "curve-area", d: `${smooth(pts)} L${pts[pts.length - 1][0].toFixed(1)},${BASE} L${pts[0][0].toFixed(1)},${BASE} Z` }));
   s.append(svg("line", { class: "curve-base", x1: X0, y1: BASE, x2: X1, y2: BASE }));
@@ -106,7 +106,7 @@ export function rankList({ total, ranks = RANKS, title = "Your rank" }) {
   const current = ranks.reduce((acc, r, i) => (total >= r.from ? i : acc), 0);
   ranks.forEach((r, i) => {
     const next = ranks[i + 1];
-    const li = el("li", i === current ? "now" : "");
+    const li = el("li", i === current ? (i === ranks.length - 1 ? "now top" : "now") : "");   // the highest rank gets its own look (shimmer, see theme.css)
     if (i === current) li.setAttribute("aria-current", "true");
     li.append(el("span", "range", { textContent: next ? `${r.from}-${next.from - 1}` : `${r.from}+` }), el("span", "rank-name", { textContent: r.name }), el("span", "rank-line", { textContent: r.line }));
     ol.append(li);

@@ -98,7 +98,14 @@
         nextDig({ label: "Next dig in" }),
         ...(q.has("answers") ? [answersMock()] : []),
         el("button", { textContent: "Play again", onclick: intro }));
+      if (score >= 640) scene.celebrate();                      // the top rank: a moment of its own (after scene.reset())
     }
+    // for tests and screenshots: the zoom, the stage position and the boxes of the panels, written into body[data-fit] after layout
+    const report = () => { const sc = document.getElementById("scene"); const r = (e) => { const b = e?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)] : null; };
+      document.body.dataset.fit = JSON.stringify({ s: sc.style.getPropertyValue("--s"), sy: sc.style.getPropertyValue("--sy"), ox: sc.style.getPropertyValue("--ox"), vw: innerWidth, vh: innerHeight,
+        main: r(document.querySelector("main")), hud: r(document.getElementById("hud")), chips: [...document.querySelectorAll(".hud-chip,.hud-q,.hud-score,.hud-sound,.timer")].map(r) }); };
+    setTimeout(report, 400);
+    if (q.has("nopanel")) document.head.append(Object.assign(document.createElement("style"), { textContent: "main, #hud { visibility: hidden !important; }" }));
     const s = q.get("screen") ?? "intro";
     if (s === "intro") intro(); else if (s === "ask") ask(true); else if (s === "end") end(); else { ask(); feedback(s); }
   </script>

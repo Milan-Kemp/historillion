@@ -1,10 +1,57 @@
-# 2D kit: fullscreen dig scene, v5 (dig site, bench, ambient life, urgency, glass panels, All answers)
+# 2D kit: fullscreen dig scene, v6 (real glass, one-row bench, top-rank celebration, glitch fixes, calmer props)
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v5 (this version): a believable dig site, a spread-out bench, ambient life, richer digs, urgency, glass panels, "All answers"
+## v6 (this version): real transparency, one straight bench, the top rank, the digging glitch, calmer props
+
+Same hooks and API. `fit()` keeps `topUsed` and the `side` layout; the side layout is now also used for the **intro and end screens on wide screens** (so the scene, and the man cheering for the top rank, is not hidden behind a centred panel) and whenever a wide screen (at least 900 px) would only get zoom 2 under the panel (about 1280 x 720 or 1366 x 768): it then gets zoom 3 or 4 beside the panel.
+
+### 1. Real transparency
+Panels, top-bar chips, the sound button, the timer and the "All answers" card are now **38 % dark glass** (`--glass: rgba(24,12,20,.38)`) over a **12 px blur, brightness 0.55 and a little extra saturation** (`--blur`), a thin 16 % light edge, a soft shadow, and a soft text shadow under every letter. The scene is clearly visible through them, dimmed and blurred. Without `backdrop-filter` the panels fall back to 92 % opaque.
+**Measured on the real scene** (`style-kit/_build/contrast6.py`): for 375 x 812, 1366 x 650 and 1920 x 1080 and for the ask, feedback and end screens (with the All answers card) it renders the scene without the panels, reads the real boxes of every panel and chip from the page, applies the blur and the brightness the way `backdrop-filter` does, lays the glass over it, and takes the WORST pixel behind each box (the brightest one, for light text; text shadows are not counted). Worst case over every size, screen, panel and chip: **cream 8.6:1, muted cream 5.7:1, gold 6.3:1, hint 4.95:1, green 5.4:1, gold-lit 7.9:1**; all at least 4.5:1. Typical panels are 9 to 12:1 for the main text. The script takes `alpha blur brightness` arguments if you want to try other values.
+Not measured: the browser's own rendering of `backdrop-filter` (I used the standard definition), and states in motion.
+
+### 2. The bench: one straight row again
+All 7 finds stand on **one row, evenly spread, 1 to 7 from left to right**. The rarity word sits on the face of the bench under each find in **one or two short lines** (`Common`, `Un-` / `common`, `Rare`, `Very` / `rare`, `No` / `find`), 12 px on screen whatever the zoom, bold, in the rarity colour on a dark chip. At 375 x 812 (zoom 3) the places are 52 px apart and the chips do not touch (screenshot `previews/v6-375-bench-crop.png`). The numbers 1 to 7 are gone (the order is the order of the row).
+Edit: `BENCH_LABELS` values may contain `\n`; in `js/strings/en.js` write them the same way (`benchLabel: { common: "Common", uncommon: "Un-\ncommon", rare: "Rare", veryRare: "Very\nrare", none: "No\nfind" }`). At **zoom 2** (a short phone such as 375 x 640) 7 words cannot fit 34 px places; there the labels switch to codes (`Com`, `Unc`, `Rare`, `V.R.`, `None`). That is the one place the words are not shown: tell me if you want something else there.
+
+### 3. The top rank (640 and up)
+Hook: **`scene.celebrate()`**. Edit in `js/main.js`, in `end()`, right after `scene.hud(null); scene.reset(); scene.sound.play("finish");`:
+```js
+if (total >= 640) scene.celebrate();      // the top rank: "One in a Historillion"
+```
+What it does: the archaeologist jumps and cheers (the very-rare victory row, looping, in the scene beside the panel), 26 small confetti squares fall, a fanfare plays (`reveal-veryRare`), the rank name shimmers gold, the rank row glows, the curve marker glows and the total turns bright gold. `idle()`, `ready()` and `dig()` clear it again, so it never survives into the next game. With reduced motion everything is static: the man holds his arms-up pose, the confetti rests where it is, the name stays gold, the marker keeps its glow.
+`end-screen.js`: the last rank is now "One in a Historillion" ("A perfect dig. Seriously." by default; yours go in `en.js`), `rankList` adds the class `top` to the row when it is the highest rank, `endCurve` adds `top` to the figure when `total >= topFrom` (default 640).
+
+### 4. The digging glitch: what I found and fixed
+I could not reproduce "he goes through the half" as one event, but stepping through every beat frame by frame (`style-kit/_build/audit6.py`: `demo.html?at=` in 0.1 s steps, 1366 x 650, 1920 x 1080 and 1280 x 720, contact sheets in `style-kit/_build/audit/`) and checking every sprite sheet by script found real defects, any of which would look like that:
+1. **Frames cut off at the sheet cell** (the most likely cause): 31 of the man's frames had pixels on the cell's edge (pickaxe heads, brush and spoon tips and dust at the bottom, the top of the victory jump and the right end of the brush-off, 4 to 18 pixels each) and 5 digger frames lost the tip of the boom at the top. The browser shows exactly the cell, so a tool or a hat was sliced straight through. Cells are now bigger (man 144 x 112, machine 144 x 104) and **no frame of any sheet touches its edge any more** (checked by script).
+2. **He teleported between his spots**: the rows at the pit edge (brush-off, leaning, lifting, the rare reactions) are drawn 24 px to the right of the digging rows, so he jumped sideways at every switch. He now walks there in 5 steps (0.3 s) and walks back for the next question.
+3. **The digger overlapped the man** (12 % of his pixels were drawn over the machine's counterweight and tracks): the digger is 4 px further right and he stands 2 px further left while he guides it; the overlap is 1 %. The truck overlapped 3 %.
+4. **The find did not follow his hands**: it was carried too late. The crown now follows from 1.35 s, the statue from 1.85 s, as he pulls and lifts.
+5. At zoom 2 the bench labels overlapped (see 2).
+6. **The machine stayed next to the pit while he stepped up to it.** When the dig is done the digger / truck now drives away to the left (0.35 s, new `truck_leave` row in `scene/machine.png`), so he never stands in front of or inside it; the still end state (`opts.still`) has no machine either.
+Many of the audit's contact-sheet tiles are plain dark blue: those are blank screenshots from starting several Chrome windows at once, not scene states. **Not found:** any sign that the sheet sizes or the CSS cut a frame wrongly; if the glitch is still there after these fixes, send me the browser, its zoom and a screen recording.
+
+### 5. The tarp and the other props
+The tarp is now **weathered off-white canvas**: warm parchment where the low sun hits it, cool purple-grey in the folds and the shaded half, a dark brown rim, same shape and flutter (`scene/tarp.png`). Toned down with the same logic, from the kit's own ramps: the orange safety fence is ochre, the ranging pole and the stakes are deep brick red and parchment instead of bright red and white, the rope barrier and the finds-tray tags are deep brick, the bench's felt mats are deep red, the hut's blue window is a window with a lamp lit inside (warm). The string grid and the lanterns stay bright on purpose (they are what you look at).
+
+### Screenshots (`previews/v6-*`)
+`v6-375-*`, `v6-1366-*`, `v6-1920-*`: `ask` (with the urgency edge), `feedback`, `end`, `end-toprank` (score 655); `v6-375-answers.png`, `v6-375-bench-crop.png`, and frame sheets of every beat in `style-kit/_build/audit_final/`.
+
+### Not checked in v6
+- The glitch on your machine (see 4).
+- `backdrop-filter` rendering differences between browsers; Firefox and Safari were not run.
+- The end-screen layout (side panel) on 900 to 1100 px wide tablets was not looked at.
+- The confetti and the shimmer in motion (checked as frames, not watched).
+
+---
+
+---
+
+## v5: a believable dig site, a spread-out bench, ambient life, richer digs, urgency, glass panels, "All answers"
 
 Keep from before: the `fit()` logic (`topUsed`, and the `side` layout for wide low windows) is unchanged except for the stage window (first row 18, 117 rows, see 2). New switches in `demo.html`: `&urgent=1` (+`&freeze=1` holds the edge at full strength), `&answers=1` (adds a mock "All answers" section to the end screen), `&only=answers` (just that section), `&at=1.55` (freeze a dig beat at 1.55 s), `&finds=N`.
 

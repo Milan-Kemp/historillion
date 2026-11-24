@@ -33,7 +33,7 @@ export const t = {
   scoreLabel: (n) => `Score ${n}`,
   // Floating text over the dig site after an answer (2d kit).
   // The word under each find on the bench (2d kit).
-  benchLabel: { none: "Nothing", common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare" },
+  benchLabel: { none: "No\nfind", common: "Common", uncommon: "Un-\ncommon", rare: "Rare", veryRare: "Very\nrare" }, // \n = a line break under the find
   reaction: { none: "Nothing", common: "Common", uncommon: "Nice!", rare: "Rare find!", veryRare: "One in a million!" },
   soundLabel: "Sound",
   totalLabel: "points",
