@@ -36,3 +36,11 @@
 .result-more .answer-more p { margin: 0 0 6px; padding: 0; max-width: 62ch; color: inherit; }
 .result-more .answer-more .answer-share { color: var(--cream-dark, #dcc89c); }
 .result-more .answer-source { display: inline-block; margin-right: 12px; padding: 10px 0; font-size: var(--fs-small, 14px); color: var(--ok, #bace78); text-underline-offset: 2px; } /* the link itself */
+
+/* Inside the results the fields and chips are see-through too (the kit styles them as solid cream and solid gold, which stands out in a transparent panel). */
+.result-more .answer-search { background: rgba(8, 4, 16, 0.22); color: var(--cream, #faf6eb); border: 1px solid var(--glass-line, rgba(250, 246, 235, .2)); box-shadow: none;
+  -webkit-backdrop-filter: var(--blur, none); backdrop-filter: var(--blur, none); text-shadow: 0 1px 3px rgba(8, 4, 16, .7); }
+.result-more .answer-search::placeholder { color: var(--cream-dark, #dcc89c); opacity: 1; }
+.result-more .chip { background: transparent; border: 1px solid var(--glass-line, rgba(250, 246, 235, .2)); color: var(--cream, #faf6eb); text-shadow: 0 1px 3px rgba(8, 4, 16, .7); }
+.result-more .chip:hover { background: var(--glass-soft, rgba(250, 246, 235, .07)); }
+.result-more .chip[aria-pressed="true"] { background: rgba(255, 208, 56, .14); border-color: var(--gold, #ffd038); color: var(--gold, #ffd038); }
