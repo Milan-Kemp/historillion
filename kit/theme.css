@@ -1,0 +1,160 @@
+/* Historillion, 8-bit kit. Drop-in replacement for css/style.css.
+   Look: the channel's original 8-bit style: night-blue page, golden-hour warmth, hard 1 px dark outlines (here 3 px = 1 art pixel),
+   notched pixel borders, hard drop shadows, gold keyword. Colours are the channel palette (engine/palette.py), contrast measured (see STYLE.md).
+   One art pixel = --px (3 px). Pixel font: only for short UI words (title, buttons, timer, points, headers). Long text stays in the readable body font. */
+
+@font-face {
+  font-family: "Sprites Pixel";
+  src: url("fonts/sprites-pixel.woff2") format("woff2"), url("fonts/sprites-pixel.ttf") format("truetype");
+  font-display: swap;
+}
+
+:root {
+  /* palette tokens: NAME_tone from the 10 ramps of 6 tones; OUT is the outline colour */
+  --out: #0e0a18;
+  --bg: #121234;          /* NIGHT_1  page */
+  --bg-dither: #0a0c22;   /* NIGHT_0  page texture */
+  --panel: #1e1846;       /* NIGHT_2  cards */
+  --field: #0a0c22;       /* NIGHT_0  inputs, timer */
+  --line: #5080d0;        /* SKY_2    borders (4.6:1 on page, passes 3:1 for non-text) */
+  --text: #faf6eb;        /* PAPER_5  15:1 on panel */
+  --muted: #acd2f0;       /* SKY_4    10:1 on panel */
+  --accent: #ffd038;      /* GOLD_3   12:1 on page */
+  --accent-dark: #8c541c; /* GOLD_1   button underside */
+  --accent-light: #ffee96;/* GOLD_4   button top edge */
+  --danger: #faaa8c;      /* BRICK_5  9.6:1 hint text */
+  --urgent: #ec6e5a;      /* BRICK_4  5.4:1 timer in the last seconds */
+  --urgent-bg: #3a1426;   /* BRICK_0 */
+  --ok: #bace78;          /* LEAF_5 */
+  --focus: #deeefa;       /* SKY_5 */
+  --font-pixel: "Sprites Pixel", ui-monospace, "Courier New", monospace;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --px: 3px;
+  --secs: 20s;            /* length of one question, for the timer bar (set from JS if SECONDS changes) */
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh;
+  background-color: var(--bg);
+  /* a 2 px checkerboard of two page tones: the dither of the video style, very quiet */
+  background-image: conic-gradient(var(--bg-dither) 25%, transparent 0 50%, var(--bg-dither) 0 75%, transparent 0);
+  background-size: 6px 6px;
+  color: var(--text); font: 16px/1.55 var(--font-body);
+}
+main { max-width: 30rem; margin: 0 auto; padding: 16px 19px 40px; }   /* 16 + 3 so the notched borders never touch the screen edge */
+
+/* ---- type ---- */
+h1, h2, p, table { margin: 0 0 16px; }
+h1 {
+  font: 24px/1.25 var(--font-pixel); text-transform: uppercase; color: var(--accent);
+  text-shadow: var(--px) var(--px) 0 var(--out), calc(var(--px) * -1) 0 0 var(--out); /* the video headline: yellow, dark drop shadow */
+  letter-spacing: 0; word-break: break-word;
+}
+h2 { font: 700 20px/1.35 var(--font-body); color: var(--text); }
+main > p:first-child { font: 16px/1.4 var(--font-pixel); text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }  /* "QUESTION 3 OF 7" */
+.dig { font-weight: 700; color: var(--text); }
+.points {
+  font: 32px/1.2 var(--font-pixel); color: var(--accent); text-transform: uppercase;
+  text-shadow: var(--px) var(--px) 0 var(--out);
+}
+
+/* ---- the pixel border: four 3 px shadows leave the four corners notched ---- */
+.pix, input, .timer, .msg:not(:empty), table, .dig-scene {
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--line), 0 var(--px) 0 0 var(--line),
+    calc(var(--px) * -1) 0 0 0 var(--line), var(--px) 0 0 0 var(--line),
+    calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--out);
+}
+
+/* ---- buttons ---- */
+button {
+  font: 16px/1 var(--font-pixel); text-transform: uppercase; letter-spacing: 0;
+  min-height: 48px; min-width: 48px; padding: 14px 20px; margin: var(--px);
+  color: var(--out); background: var(--accent); border: 0; cursor: pointer;
+  box-shadow:
+    inset 0 var(--px) 0 0 var(--accent-light), inset 0 calc(var(--px) * -1) 0 0 var(--accent-dark),
+    0 calc(var(--px) * -1) 0 0 var(--out), 0 var(--px) 0 0 var(--out), calc(var(--px) * -1) 0 0 0 var(--out), var(--px) 0 0 0 var(--out),
+    calc(var(--px) * 2) calc(var(--px) * 2) 0 0 var(--out);
+}
+button:hover { background: var(--accent-light); }
+button:active { transform: translate(var(--px), var(--px)); box-shadow: inset 0 var(--px) 0 0 var(--accent-dark), 0 0 0 var(--px) var(--out); }
+form { display: grid; gap: 14px; margin: 0 0 16px; }
+form button { width: 100%; margin: 0; }
+
+/* ---- input: 18 px so iOS never zooms, 48 px tall ---- */
+input {
+  display: block; width: calc(100% - 2 * var(--px)); margin: var(--px);
+  font: 18px/1.2 var(--font-body); min-height: 48px; padding: 10px 12px;
+  color: var(--text); background: var(--field); border: 0; border-radius: 0;
+}
+input::placeholder { color: var(--muted); opacity: 1; }
+:focus-visible { outline: var(--px) solid var(--focus); outline-offset: var(--px); }
+input:focus-visible { outline-color: var(--accent); }
+
+/* ---- timer: seconds in pixel digits, a 20-step bar that drains by itself (CSS only), and a colour jump for the last quarter ---- */
+.timer {
+  display: block; margin: var(--px) var(--px) 22px; padding: 10px 14px 18px;
+  font: 32px/1 var(--font-pixel); color: var(--accent); background-color: var(--field);
+  background-image: linear-gradient(currentColor, currentColor);   /* the bar uses the text colour, so it turns red with it */
+  background-repeat: no-repeat; background-position: 14px calc(100% - 6px); background-size: calc(100% - 28px) 6px;
+  outline: var(--px) solid transparent;
+  animation:
+    drain var(--secs) steps(20, end) forwards,
+    urgent var(--secs) step-end forwards,
+    blink 0.5s step-end calc(var(--secs) * 0.75) infinite;
+}
+@keyframes drain  { from { background-size: calc(100% - 28px) 6px; } to { background-size: 0 6px; } }
+@keyframes urgent { 0% { color: var(--accent); } 75% { color: var(--urgent); } 100% { color: var(--urgent); } }
+@keyframes blink  { 50% { outline-color: var(--urgent); } }
+.timer.low { color: var(--urgent); }            /* optional JS hook: timer.classList.toggle("low", left <= 5) */
+
+/* ---- hints and messages (role=status, so they are announced) ---- */
+.msg { min-height: 3em; margin: 0 var(--px) 16px; color: var(--muted); }
+.msg:not(:empty) { padding: 10px 12px; background: var(--panel); color: var(--danger); }
+.msg button { min-height: 44px; margin: 4px 0 0 8px; padding: 10px 14px; font-size: 16px; }
+
+/* ---- feedback ---- */
+.dig { padding: 0; }
+main > p { overflow-wrap: anywhere; }
+
+/* ---- end screen table: rows become small cards on a phone; add data-label (header text) to each td in main.js for the labels ---- */
+table { width: calc(100% - 2 * var(--px)); margin: var(--px) var(--px) 22px; border-collapse: collapse; background: var(--panel); }
+th { font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--accent); text-align: left; padding: 8px; }
+td { padding: 8px; border-top: var(--px) solid var(--bg); vertical-align: top; overflow-wrap: anywhere; }
+@media (max-width: 34rem) {
+  thead { position: absolute; left: -9999px; }   /* still read by screen readers */
+  table, tbody, tr, td { display: block; }
+  tr { padding: 8px 0; border-top: var(--px) solid var(--bg); }
+  tr:first-child { border-top: 0; }
+  td { border: 0; padding: 2px 12px; }
+  td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); }
+  td:first-child { color: var(--text); font-weight: 700; }
+  td:last-child { color: var(--accent); font: 16px/1.4 var(--font-pixel); }
+}
+
+/* ---- dig scene (see dig-scene.js): the scene is a 160 x 72 pixel picture; tool and find are placed by percentages ---- */
+.dig-scene { position: relative; width: calc(100% - 2 * var(--px)); margin: var(--px) var(--px) 22px; aspect-ratio: 160 / 72; overflow: hidden; background: var(--field); }
+.dig-scene img { position: absolute; display: block; image-rendering: pixelated; }
+.dig-scene .bg { inset: 0; width: 100%; height: 100%; }
+.dig-scene .tool { width: 30%; left: calc(46 / 160 * 100% - 15%); bottom: calc((72 - 47) / 72 * 100%); }
+.dig-scene .find { width: 25%; left: calc(100 / 160 * 100% - 12.5%); bottom: calc((72 - 66) / 72 * 100%); }
+@media (prefers-reduced-motion: no-preference) {
+  .dig-scene .tool { animation: dig 0.7s steps(2, end) infinite; }
+  .dig-scene .find { animation: unearth 0.5s steps(5, end) both; }
+}
+@keyframes dig { 50% { transform: translateY(var(--px)); } }
+@keyframes unearth { from { transform: translateY(24px); } to { transform: none; } }
+
+/* ---- museum shelf for the end screen (also the share image): one case per find ---- */
+.museum { list-style: none; margin: 0 var(--px) 22px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 14px; }
+.museum li { padding: 8px 4px 6px; text-align: center; background: var(--panel); font-size: 13px; line-height: 1.25;
+  box-shadow: 0 calc(var(--px) * -1) 0 0 var(--line), 0 var(--px) 0 0 var(--line), calc(var(--px) * -1) 0 0 0 var(--line), var(--px) 0 0 0 var(--line); }
+.museum img { display: block; width: 80px; height: 80px; margin: 0 auto 4px; image-rendering: pixelated; }
+
+/* ---- reduced motion: nothing has to move. The colour jump of the timer stays (it is not motion); the bar and the blink go. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .timer { animation: urgent var(--secs) step-end forwards; background-image: none; padding-bottom: 10px; }
+  button:active { transform: none; }
+}

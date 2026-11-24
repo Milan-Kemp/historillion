@@ -1,0 +1,72 @@
+{
+  "brush": {
+    "file": "tools/brush.png",
+    "kind": "tool",
+    "width": 48,
+    "height": 40,
+    "alt": "A soft brush"
+  },
+  "pickaxe": {
+    "file": "tools/pickaxe.png",
+    "kind": "tool",
+    "width": 48,
+    "height": 40,
+    "alt": "A pickaxe"
+  },
+  "digger": {
+    "file": "tools/digger.png",
+    "kind": "tool",
+    "width": 48,
+    "height": 40,
+    "alt": "A small excavator"
+  },
+  "truck": {
+    "file": "tools/truck.png",
+    "kind": "tool",
+    "width": 48,
+    "height": 40,
+    "alt": "A dump truck full of earth"
+  },
+  "spoon": {
+    "file": "tools/spoon.png",
+    "kind": "tool",
+    "width": 48,
+    "height": 40,
+    "alt": "A spoon"
+  },
+  "shard": {
+    "file": "finds/shard.png",
+    "kind": "find",
+    "width": 40,
+    "height": 40,
+    "alt": "A painted pottery shard"
+  },
+  "coin": {
+    "file": "finds/coin.png",
+    "kind": "find",
+    "width": 40,
+    "height": 40,
+    "alt": "A gold coin"
+  },
+  "crown": {
+    "file": "finds/crown.png",
+    "kind": "find",
+    "width": 40,
+    "height": 40,
+    "alt": "A gold crown with gems"
+  },
+  "statue": {
+    "file": "finds/statue.png",
+    "kind": "find",
+    "width": 40,
+    "height": 40,
+    "alt": "A stone statue bust"
+  },
+  "rock": {
+    "file": "finds/rock.png",
+    "kind": "find",
+    "width": 40,
+    "height": 40,
+    "alt": "Just a rock"
+  }
+}

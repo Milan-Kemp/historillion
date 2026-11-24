@@ -18,15 +18,16 @@ export const t = {
   didYouMean: "Did you mean",
   typeSomething: "Type an answer first.",
   notRecognised: "Not in today's list. It may still be valid, but we can't check it yet. Try another answer.",
-  // Placeholder emoji until the pixel art exists. The tool grows with the rarity of the answer.
+  // Names of the dig tools and finds. The sprites come from the style kit (DIG in kit/dig-scene.js).
   dig: {
-    common: { tool: "🖌️ Brush", find: "🏺 Pottery shard" },
-    uncommon: { tool: "⛏️ Pickaxe", find: "🪙 Coin" },
-    rare: { tool: "🚜 Digger", find: "👑 Crown" },
-    veryRare: { tool: "🚚 Truck", find: "🗿 Statue" },
-    none: { tool: "🥄 Spoon", find: "🪨 Just a rock" },
+    common: { tool: "Brush", find: "Pottery shard" },
+    uncommon: { tool: "Pickaxe", find: "Coin" },
+    rare: { tool: "Digger", find: "Crown" },
+    veryRare: { tool: "Truck", find: "Statue" },
+    none: { tool: "Spoon", find: "Rock" },
   },
-  youDug: (tool, find) => `${tool}: you found ${find}`,
+  // The dig scene is decorative (aria-hidden); this sentence is its text alternative.
+  youDug: (tool, find) => `You dug up a ${find.toLowerCase()} with a ${tool.toLowerCase()}.`,
   findCol: "Find",
   total: "Total score",
   yourAnswer: "Your answer",

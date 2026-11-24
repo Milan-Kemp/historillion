@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Historillion, 8-bit kit: style guide</title>
+  <link rel="icon" href="brand/favicon.png">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .sg { font: 14px/1.4 system-ui, sans-serif; color: #cdd6e4; max-width: 30rem; margin: 28px auto 10px; padding: 0 19px; }
+    .sg b { color: #fff; }
+    .logo { display: block; margin: 0 auto; width: 304px; image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <p class="sg"><b>Historillion, 8-bit kit.</b> Every screen of the game with the real markup (tags and classes from main.js). Serve over http: <code>python -m http.server 8000</code>, open /style-kit/8bit/styleguide.html.</p>
+  <p class="sg"><img class="logo" src="brand/logo.png" alt="Historillion logo"></p>
+
+  <h3 class="sg">1 Intro</h3>
+  <main>
+    <h1>Historillion</h1>
+    <p>A daily history game. Seven questions, twenty seconds each.</p>
+    <p>The rarer your answer, the more points you dig up.</p>
+    <button>Start</button>
+  </main>
+
+  <h3 class="sg">2 Question (timer runs: 8 s demo, turns red in the last quarter)</h3>
+  <main>
+    <p>Question 3 of 7</p>
+    <div id="scene-q"></div>
+    <h2>Which Roman emperor is said to have played music while Rome burned?</h2>
+    <p class="timer" role="timer" style="--secs: 8s">8 s</p>
+    <form onsubmit="return false">
+      <input type="text" placeholder="Type your answer" aria-label="Which Roman emperor is said to have played music while Rome burned?">
+      <button type="submit">Submit</button>
+    </form>
+    <p class="msg" role="status">Did you mean <button type="button">→ Nero</button></p>
+  </main>
+
+  <h3 class="sg">3 Feedback: rare answer (digger + crown)</h3>
+  <main>
+    <p>Question 3 of 7</p>
+    <h2>Which Roman emperor is said to have played music while Rome burned?</h2>
+    <div id="scene-f"></div>
+    <p>Your answer: nero</p>
+    <p>Counted as: Nero</p>
+    <p class="dig">You dug up a gold crown with a small excavator.</p>
+    <p class="points">+62 points</p>
+    <p>Rare answer. 9% of players gave it.</p>
+    <p>The story that he fiddled is a myth: the fiddle did not exist yet.</p>
+    <button>Next</button>
+  </main>
+
+  <h3 class="sg">4 End screen: museum + table (cards on a phone)</h3>
+  <main>
+    <h1>Total: 318</h1>
+    <ul class="museum" id="museum"></ul>
+    <table>
+      <thead><tr><th>Question</th><th>Your answer</th><th>Rarity</th><th>Find</th><th>Points</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <button>Play again</button>
+  </main>
+
+  <h3 class="sg">All ten sprites (shown at 2x)</h3>
+  <main><ul class="museum" id="all"></ul></main>
+
+  <script type="module">
+    import { digScene, museum, DIG } from "./dig-scene.js";
+    document.getElementById("scene-q").replaceWith(digScene("brush", null));
+    document.getElementById("scene-f").replaceWith(digScene("digger", "crown"));
+    const keys = ["common", "uncommon", "rare", "veryRare", "none", "rare", "common"];
+    const names = { shard: "Pottery shard", coin: "Coin", crown: "Crown", statue: "Statue", rock: "Just a rock" };
+    document.getElementById("museum").replaceWith(museum(keys.map((k) => ({ find: DIG[k].find, label: names[DIG[k].find] }))));
+    const heads = ["Question", "Your answer", "Rarity", "Find", "Points"];
+    document.getElementById("rows").append(...keys.slice(0, 4).map((k, i) => {
+      const tr = document.createElement("tr");
+      [`Question ${i + 1} text here`, "an answer", ["Common", "Uncommon", "Rare", "Very rare"][i], names[DIG[k].find], [10, 25, 62, 90][i]].forEach((v, j) => {
+        const td = document.createElement("td"); td.dataset.label = heads[j]; td.textContent = v; tr.append(td);
+      });
+      return tr;
+    }));
+    const all = [["brush", null], ["pickaxe", null], ["digger", null], ["truck", null], ["spoon", null], [null, "shard"], [null, "coin"], [null, "crown"], [null, "statue"], [null, "rock"]];
+    const list = document.getElementById("all");
+    for (const [tool, find] of all) {
+      const li = document.createElement("li"); const im = document.createElement("img");
+      im.alt = ""; im.className = "find";
+      im.src = new URL(`./sprites/${tool ? "tools" : "finds"}/${tool ?? find}.png`, import.meta.url).href;
+      li.append(im, document.createTextNode(tool ?? find)); list.append(li);
+    }
+  </script>
+</body>
+</html>

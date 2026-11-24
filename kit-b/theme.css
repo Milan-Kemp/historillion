@@ -1,0 +1,150 @@
+/* Historillion, 2D kit. Drop-in replacement for css/style.css.
+   Look: the newer flat, bright, top-down style (after SMKS "Tribe of the Accord"): a meadow-green page, ONE dark wood plate with a cream
+   double border and notched corners holding everything (like the HUD plates of the battle films), gold studs, flat blocks, a darker strip
+   under every part instead of black outlines, segmented bars. One art pixel = --px (3 px).
+   Pixel font only for short UI words; long text stays in the readable body font. Contrast measured (see STYLE.md). */
+
+@font-face {
+  font-family: "Sprites Pixel";
+  src: url("fonts/sprites-pixel.woff2") format("woff2"), url("fonts/sprites-pixel.ttf") format("truetype");
+  font-display: swap;
+}
+
+:root {
+  --bg: #1e423a;          /* LEAF_1   page (the dark meadow behind the plate) */
+  --bg-lit: #2e6240;      /* LEAF_2   page texture */
+  --fill: #2c1822;        /* WOOD_0   plate */
+  --fill-lit: #482626;    /* WOOD_1   plate top edge, table rows */
+  --line: #683a2c;        /* WOOD_2   plate inner line */
+  --cream: #faf6eb;       /* PAPER_5  plate border, text (15:1 on plate) */
+  --cream-dark: #dcc89c;  /* PAPER_3  muted text (10:1 on plate) */
+  --gold: #ffd038;        /* GOLD_3   accent, studs, button (11:1 on plate) */
+  --gold-lit: #ffee96;    /* GOLD_4 */
+  --gold-dark: #8c541c;   /* GOLD_1   strip under the button */
+  --field: #faf6eb;       /* PAPER_5  input background, text is --fill (15:1) */
+  --danger: #faaa8c;      /* BRICK_5  9:1 hint text */
+  --urgent: #ec6e5a;      /* BRICK_4  5.5:1 timer in the last seconds */
+  --ok: #bace78;          /* LEAF_5 */
+  --focus: #ffee96;       /* GOLD_4 */
+  --font-pixel: "Sprites Pixel", ui-monospace, "Courier New", monospace;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --px: 3px;
+  --secs: 20s;            /* length of one question, for the timer bar (set from JS if SECONDS changes) */
+  /* the plate corner: a 3 px notch, as in the film HUD */
+  --notch: polygon(var(--px) 0, calc(100% - var(--px)) 0, 100% var(--px), 100% calc(100% - var(--px)), calc(100% - var(--px)) 100%, var(--px) 100%, 0 calc(100% - var(--px)), 0 var(--px));
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; padding: 16px;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--bg-lit) 1px, transparent 1.5px);   /* sparse grass tufts */
+  background-size: 18px 18px;
+  color: var(--cream); font: 16px/1.55 var(--font-body);
+}
+main {
+  max-width: 30rem; margin: 0 auto; padding: 20px 18px 28px;
+  background: var(--fill); color: var(--cream);
+  border: var(--px) solid var(--cream);
+  box-shadow: inset 0 0 0 var(--px) var(--line), inset 0 calc(var(--px) * 2) 0 var(--px) var(--fill-lit), 0 var(--px) 0 var(--px) #14080e;
+  clip-path: var(--notch);
+}
+
+/* ---- type ---- */
+h1, h2, p, table { margin: 0 0 16px; }
+h1 {
+  font: 24px/1.25 var(--font-pixel); text-transform: uppercase; color: var(--gold);
+  text-shadow: var(--px) var(--px) 0 #14080e; word-break: break-word;
+}
+h2 { font: 700 20px/1.35 var(--font-body); color: var(--cream); }
+main > p:first-child { font: 16px/1.4 var(--font-pixel); text-transform: uppercase; color: var(--cream-dark); margin-bottom: 8px; }  /* "QUESTION 3 OF 7" */
+.dig { font-weight: 700; }
+.points { font: 32px/1.2 var(--font-pixel); color: var(--gold); text-transform: uppercase; text-shadow: var(--px) var(--px) 0 #14080e; }
+main > p { overflow-wrap: anywhere; }
+
+/* ---- buttons: flat gold block, dark strip under it, notched corners ---- */
+button {
+  font: 16px/1 var(--font-pixel); text-transform: uppercase; letter-spacing: 0;
+  min-height: 48px; min-width: 48px; padding: 14px 20px; margin: 0;
+  color: var(--fill); background: var(--gold); border: 0; cursor: pointer;
+  box-shadow: inset 0 calc(var(--px) * -1) 0 0 var(--gold-dark), inset 0 var(--px) 0 0 var(--gold-lit);
+  clip-path: var(--notch);
+}
+button:hover { background: var(--gold-lit); }
+button:active { transform: translateY(var(--px)); }
+form { display: grid; gap: 14px; margin: 0 0 16px; }
+form button { width: 100%; }
+
+/* ---- input: cream field, dark text, 18 px so iOS never zooms, 48 px tall ---- */
+input {
+  display: block; width: 100%; font: 18px/1.2 var(--font-body); min-height: 48px; padding: 10px 12px;
+  color: var(--fill); background: var(--field); border: var(--px) solid var(--line); border-radius: 0;
+  box-shadow: inset 0 var(--px) 0 0 var(--cream-dark);
+}
+input::placeholder { color: #6a5a52; opacity: 1; }   /* 5.6:1 on the cream field */
+:focus-visible { outline: var(--px) solid var(--focus); outline-offset: var(--px); }
+button:focus-visible { clip-path: none; }   /* clip-path would cut the focus ring off, so a focused button loses its notched corners */
+
+/* ---- timer: a segmented bar like the HUD bars (20 steps, drains by itself, CSS only), colour jump for the last quarter ---- */
+.timer {
+  display: block; margin: 0 0 22px; padding: 10px 14px 20px;
+  font: 32px/1 var(--font-pixel); color: var(--ok); background-color: #14080e;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 calc(5% - 2px), #14080e calc(5% - 2px) 5%),   /* the gaps between the 20 segments */
+    linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat; background-position: 14px calc(100% - 7px), 14px calc(100% - 7px);
+  background-size: calc(100% - 28px) 8px, calc(100% - 28px) 8px;
+  clip-path: var(--notch);
+  animation: drain var(--secs) steps(20, end) forwards, urgent var(--secs) step-end forwards, blink 0.5s step-end calc(var(--secs) * 0.75) infinite;
+}
+@keyframes drain  { from { background-size: calc(100% - 28px) 8px, calc(100% - 28px) 8px; } to { background-size: calc(100% - 28px) 8px, 0 8px; } }
+@keyframes urgent { 0% { color: var(--ok); } 75% { color: var(--urgent); } 100% { color: var(--urgent); } }
+@keyframes blink  { 50% { background-color: #3a1426; } }
+.timer.low { color: var(--urgent); }            /* optional JS hook: timer.classList.toggle("low", left <= 5) */
+
+/* ---- hints (role=status) ---- */
+.msg { min-height: 3em; margin: 0 0 16px; color: var(--cream-dark); }
+.msg:not(:empty) { padding: 10px 12px; background: var(--fill-lit); color: var(--danger); border-left: var(--px) solid var(--danger); }
+.msg button { min-height: 44px; margin: 4px 0 0 8px; padding: 10px 14px; }
+
+/* ---- end screen table: cards on a phone (add data-label to each td in main.js for the labels) ---- */
+table { width: 100%; border-collapse: collapse; }
+th { font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--gold); text-align: left; padding: 8px; }
+td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: top; overflow-wrap: anywhere; }
+@media (max-width: 34rem) {
+  thead { position: absolute; left: -9999px; }
+  table, tbody, tr, td { display: block; }
+  tr { padding: 8px 0; border-top: var(--px) solid var(--fill-lit); }
+  tr:first-child { border-top: 0; }
+  td { border: 0; padding: 2px 4px; }
+  td[data-label]::before { content: attr(data-label) ": "; color: var(--cream-dark); }
+  td:first-child { font-weight: 700; }
+  td:last-child { color: var(--gold); font: 16px/1.4 var(--font-pixel); }
+}
+
+/* ---- dig scene (see dig-scene.js): the scene is a 160 x 80 pixel picture; tool and find placed by percentages ---- */
+.dig-scene { position: relative; width: 100%; margin: 0 0 22px; aspect-ratio: 160 / 80; overflow: hidden; background: var(--bg);
+  border: var(--px) solid var(--cream); box-shadow: inset 0 0 0 var(--px) var(--line); clip-path: var(--notch); }
+.dig-scene img { position: absolute; display: block; image-rendering: pixelated; }
+.dig-scene .bg { inset: 0; width: 100%; height: 100%; }
+.dig-scene .tool { width: 30%; left: calc(36 / 160 * 100% - 15%); bottom: calc((80 - 66) / 80 * 100%); }
+.dig-scene .find { width: 25%; left: calc(80 / 160 * 100% - 12.5%); bottom: calc((80 - 60) / 80 * 100%); }
+@media (prefers-reduced-motion: no-preference) {
+  .dig-scene .tool { animation: dig 0.7s steps(2, end) infinite; }
+  .dig-scene .find { animation: unearth 0.5s steps(5, end) both; }
+}
+@keyframes dig { 50% { transform: translateY(var(--px)); } }
+@keyframes unearth { from { transform: translateY(24px); } to { transform: none; } }
+
+/* ---- museum shelf: a wooden shelf with the finds standing on it (also the share image) ---- */
+.museum { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 14px; }
+.museum li { padding: 8px 4px 6px; text-align: center; font-size: 13px; line-height: 1.25; background: var(--fill-lit);
+  box-shadow: inset 0 calc(var(--px) * -2) 0 0 var(--line); clip-path: var(--notch); }
+.museum img { display: block; width: 80px; height: 80px; margin: 0 auto 6px; image-rendering: pixelated; }
+
+/* ---- reduced motion: nothing has to move; the timer keeps its colour jump, loses the bar drain and blink ---- */
+@media (prefers-reduced-motion: reduce) {
+  .timer { animation: urgent var(--secs) step-end forwards; background-image: none; padding-bottom: 10px; }
+  button:active { transform: none; }
+}

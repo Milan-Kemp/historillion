@@ -22,3 +22,6 @@ npm test
 - Later, real player data: `mixed_share = (k * prior_share + times_chosen) / (k + total_answers)`. Not built in v1.
 - `explanation` and `sources` are stored in the data but not shown in v1.
 - Sources per answer are currently the list page per question. Check them before publishing.
+
+## Style kits
+`kit/` is the 8-bit style (default), `kit-b/` the 2d style. Open `?kit=b` to compare, for example `/?day=2026-12-01&kit=b`. Both have the same hooks and JS API (`dig-scene.js`), so the choice is one folder. When one wins, delete the other and the `KIT` lines at the top of `js/main.js`. Rules for each style are in `kit/STYLE.md` and `kit-b/STYLE.md`.

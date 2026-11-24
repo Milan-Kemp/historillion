@@ -2,6 +2,12 @@ import { t } from "./strings/en.js";
 import { match, suggest } from "./matching.js";
 import { points, rarityKey } from "./scoring.js";
 
+// ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
+const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
+document.getElementById("theme").href = `${KIT}/theme.css`;
+document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
+const { digScene, museum, DIG } = await import(`../${KIT}/dig-scene.js`);
+
 const SECONDS = 20;
 const app = document.getElementById("app");
 
@@ -33,10 +39,10 @@ function grade(input, question) {
   if (m.kind === "answer") {
     const share = m.entry.prior_share;
     const key = rarityKey(share);
-    return { pts: points(share), rarity: t.rarity[key], share, name: m.entry.canonical, text: m.entry.explanation, dig: t.dig[key] };
+    return { pts: points(share), rarity: t.rarity[key], share, name: m.entry.canonical, text: m.entry.explanation, key, dig: t.dig[key] };
   }
-  if (m.kind === "rejected") return { pts: 0, rarity: t.rejected, rejected: true, text: m.entry.explanation, dig: t.dig.none };
-  return { pts: 0, rarity: "-", text: input.trim() ? t.noMatch : t.empty, dig: t.dig.none };
+  if (m.kind === "rejected") return { pts: 0, rarity: t.rejected, rejected: true, text: m.entry.explanation, key: "none", dig: t.dig.none };
+  return { pts: 0, rarity: "-", text: input.trim() ? t.noMatch : t.empty, key: "none", dig: t.dig.none };
 }
 
 function intro(day) {
@@ -57,9 +63,11 @@ function ask(day, i, results) {
   const msg = el("p", { className: "msg", role: "status" }); // live region: screen readers announce the hint
   show(
     el("p", { textContent: t.question(i + 1, day.questions.length) }),
+    digScene(null, null),
     el("h2", { textContent: question.prompt }),
     timer, form, msg,
   );
+  timer.style.setProperty("--secs", `${SECONDS}s`);
   input.focus();
 
   const deadline = performance.now() + SECONDS * 1000;
@@ -98,6 +106,7 @@ function ask(day, i, results) {
   const tick = setInterval(() => {
     const left = Math.ceil((deadline - performance.now()) / 1000);
     timer.textContent = t.seconds(Math.max(left, 0));
+    timer.classList.toggle("low", left <= SECONDS / 4);
     if (left <= 0) timeUp();
   }, 100);
   form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
@@ -109,6 +118,7 @@ function feedback(day, i, results) {
   show(
     el("p", { textContent: t.question(i + 1, day.questions.length) }),
     el("h2", { textContent: r.prompt }),
+    digScene(DIG[r.key].tool, DIG[r.key].find),
     el("p", { textContent: `${t.yourAnswer}: ${r.typed.trim() || "-"}` }),
     ...(r.name ? [el("p", { textContent: t.matchedAs(r.name) })] : []),
     el("p", { className: "dig", textContent: t.youDug(r.dig.tool, r.dig.find) }),
@@ -122,14 +132,15 @@ function feedback(day, i, results) {
 function end(results) {
   const total = results.reduce((s, r) => s + r.pts, 0);
   const rows = results.map((r) => el("tr", {},
-    el("td", { textContent: r.prompt }),
-    el("td", { textContent: r.typed.trim() || "-" }),
-    el("td", { textContent: r.rarity }),
-    el("td", { textContent: r.dig.find }),
-    el("td", { textContent: r.pts }),
+    el("td", { textContent: r.prompt, "data-label": t.questionCol }),
+    el("td", { textContent: r.typed.trim() || "-", "data-label": t.yourAnswer }),
+    el("td", { textContent: r.rarity, "data-label": t.rarityCol }),
+    el("td", { textContent: r.dig.find, "data-label": t.findCol }),
+    el("td", { textContent: r.pts, "data-label": t.pointsCol }),
   ));
   show(
     el("h1", { textContent: `${t.total}: ${total}` }),
+    museum(results.map((r) => ({ find: DIG[r.key].find, label: r.dig.find }))),
     el("table", {},
       el("thead", {}, el("tr", {}, ...[t.questionCol, t.yourAnswer, t.rarityCol, t.findCol, t.pointsCol].map((h) => el("th", { textContent: h })))),
       el("tbody", {}, ...rows)),
