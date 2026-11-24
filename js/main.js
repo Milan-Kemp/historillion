@@ -8,9 +8,14 @@ import { resultsList } from "./answers.js";
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
-// ?glass=clear (no panel background, no blur) or ?glass=light (very faint) to test how see-through the panels can get. Without it the kit's glass applies.
-const GLASS = { clear: ["transparent", "none"], light: ["rgba(24, 12, 20, 0.16)", "blur(6px) brightness(0.8)"] }[new URLSearchParams(location.search).get("glass")];
-if (GLASS) { document.documentElement.style.setProperty("--glass", GLASS[0]); document.documentElement.style.setProperty("--blur", GLASS[1]); }
+// How see-through the panels are. Default: very light glass. ?glass=clear (no background, no blur), ?glass=soft (the previous light glass),
+// ?glass=classic (the kit's own, darker 38 % glass). The text halo follows the glass automatically (the kit reads --glass).
+const GLASS = {
+  clear: ["transparent", "none"],
+  light: ["rgba(24, 12, 20, 0.10)", "blur(5px) brightness(0.88)"],
+  soft: ["rgba(24, 12, 20, 0.16)", "blur(6px) brightness(0.8)"],
+}[new URLSearchParams(location.search).get("glass") ?? "light"];
+if (GLASS && KIT === "kit-b") { document.documentElement.style.setProperty("--glass", GLASS[0]); document.documentElement.style.setProperty("--blur", GLASS[1]); }
 const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
@@ -175,6 +180,7 @@ function end(day, results) {
   const total = results.reduce((s, r) => s + r.pts, 0);
   if (scene && total >= t.ranks.at(-1).from) scene.celebrate(); // the top rank, "One in a Historillion"
   if (endKit) {
+    document.body.classList.add("phase-end"); // css/answers.css centres the results panel on the screen
     // The curve is an estimate from predicted answer shares (no real players yet); endCurve prints that too.
     const dist = scoreDistribution(day);
     show(
