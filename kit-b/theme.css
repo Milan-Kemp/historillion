@@ -5,6 +5,14 @@
    Pixel font for short UI words and the question; long text stays in the readable body font. Text sits on plates, never on the artwork
    (the floating reaction is the one exception: it is decorative, has a 1 px dark outline, and its words also appear in the panel). */
 
+/* Display: Pixelify Sans (SIL OFL, with lowercase and accents) for short words, numbers, labels and the question. Text: Atkinson Hyperlegible (SIL OFL) for sentences.
+   Licences are in fonts/. Both subsetted to Latin (Latin-1 + Latin Extended-A + typographic punctuation), woff2, loaded with font-display: swap. */
+@font-face { font-family: "Pixelify Sans"; src: url("fonts/pixelify-sans.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible"; src: url("fonts/atkinson-hyperlegible-regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible"; src: url("fonts/atkinson-hyperlegible-bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+/* Pixelify Sans draws its 5 like an S and its 6 like a b, which is bad for numbers. So every DIGIT in a display text comes from our own 5 x 7 channel font instead:
+   size-adjust 72.73% makes it exactly 2 px per font pixel where Pixelify is at 22 px (3 px at 33, 4 px at 44), the same height as Pixelify's capitals. Letters stay Pixelify. */
+@font-face { font-family: "Pixel Digits"; src: url("fonts/sprites-pixel.woff2") format("woff2"); unicode-range: U+0030-0039; size-adjust: 72.73%; font-display: swap; }
 @font-face {
   font-family: "Sprites Pixel";
   src: url("fonts/sprites-pixel.woff2") format("woff2"), url("fonts/sprites-pixel.ttf") format("truetype");
@@ -27,8 +35,16 @@
   --ok: #bace78;          /* LEAF_5   9.7:1 timer */
   --focus: #ffee96;       /* GOLD_4 */
   --ink: #14080e;
-  --font-pixel: "Sprites Pixel", ui-monospace, "Courier New", monospace;
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Pixel Digits", "Pixelify Sans", "Sprites Pixel", ui-monospace, "Courier New", monospace;     /* short words, numbers, labels, the question */
+  --font-text: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;  /* sentences */
+  --font-art: "Sprites Pixel", ui-monospace, monospace;                                             /* the 1:1 pixel label that floats over the scene */
+  /* The type scale. Pixelify Sans is drawn on an 11-pixel em, so it is crisp only at multiples of 11 px: 22 (display small: question, buttons, numbers), 33 (title, points),
+     44, 55 (total). Atkinson sizes sit on a 2 px step: 12 micro, 14 small, 16 body, 18 lead. Body text is never under 16 px, secondary text never under 12 px. */
+  --px-1: 22px; --px-2: 33px; --px-3: 44px; --px-4: 55px;
+  --fs-micro: 0.75rem; --fs-small: 0.875rem; --fs-body: 1rem; --fs-lead: 1.125rem;
+  --lh-tight: 1.15; --lh-heading: 1.3; --lh-body: 1.5;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+  
   --px: 3px;
   --secs: 20s;            /* length of one question (timer bar); set from JS if SECONDS changes */
   --kb: 0px;              /* height of the on-screen keyboard, set by dig-scene.js */
@@ -38,7 +54,7 @@
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; height: 100%; }
-body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color: var(--cream); font: 16px/1.55 var(--font-body); }
+body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color: var(--cream); font: var(--fs-body)/var(--lh-body) var(--font-text); font-synthesis: none; -webkit-font-smoothing: antialiased; }
 [hidden] { display: none !important; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -81,7 +97,7 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
 #scene .sparkle { --fw: 56px; left: 92px; top: 22px; width: 56px; height: 56px; background-image: url("scene/sparkle.png"); background-size: 336px 56px; }
 
 /* the floating reaction: pixel text at 1:1 with the art (8 px = one font pixel per art pixel), 1 px dark outline, rises above his head */
-#scene .react { position: absolute; left: 92px; top: 24px; transform: translateX(-50%); white-space: nowrap; font: 8px/1 var(--font-pixel); text-transform: uppercase; color: var(--cream);
+#scene .react { position: absolute; left: 92px; top: 28px; transform: translateX(-50%); white-space: nowrap; font: 8px/1 var(--font-art); text-transform: uppercase; color: var(--cream);
   text-shadow: -1px 0 var(--ink), 1px 0 var(--ink), 0 -1px var(--ink), 0 1px var(--ink), 1px 1px var(--ink), -1px 1px var(--ink); }
 #scene .react[hidden] { display: none; }
 #scene .react[data-key="none"] { color: var(--cream-dark); }
@@ -90,6 +106,12 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
 #scene .react.float { animation: react-float 0.5s steps(6) both; }
 #scene .react.still { transform: translate(-50%, -8px); }
 @keyframes react-float { from { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } to { transform: translate(-50%, -8px); opacity: 1; } }
+
+/* ---- v4: the finds bench ---- */
+#scene .slots { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#scene .slot { width: 24px; height: 30px; background: url("scene/slots.png") no-repeat; background-size: 120px 30px; background-position: calc(var(--k, 0) * -24px) 0; }
+#scene .slot.fly { animation: slot-fly 0.45s steps(6) both; }                               /* a find flies from the pit to its place on the bench, in an arc */
+@keyframes slot-fly { from { translate: var(--dx) var(--dy); } 50% { translate: calc(var(--dx) * 0.5) calc(var(--dy) * 0.5 - 14px); } to { translate: 0 0; } }
 
 /* ---- v3: build-up effects ---- */
 #scene.seek-freeze, #scene.seek-freeze * { animation-play-state: paused !important; }      /* seek mode (screenshots): the beat is frozen at a chosen moment */
@@ -122,7 +144,7 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
 #hud { position: fixed; z-index: 2; top: max(8px, env(safe-area-inset-top)); left: 12px; right: 12px; max-width: 30rem; margin: 0 auto; }
 #hud[hidden] { display: none; }
 .hud-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 0 0 6px; }
-.hud-chip, .hud-q, .hud-score { margin: var(--px); padding: 6px 10px; font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--cream); background: var(--fill);
+.hud-chip, .hud-q, .hud-score { margin: var(--px); padding: 6px 10px; font: 700 var(--px-1)/1.1 var(--font-display); text-transform: none; color: var(--cream); background: var(--fill);
   box-shadow: inset 0 0 0 var(--px) var(--line), 0 0 0 var(--px) var(--cream); min-height: 34px; display: flex; align-items: center; }
 .hud-chip { justify-self: start; }
 .hud-score { justify-self: end; color: var(--gold); }
@@ -146,21 +168,32 @@ main {
 .no-hud main { top: max(12px, env(safe-area-inset-top)); max-height: calc(var(--vh, 100dvh) * 0.82); }
 
 /* ---- type ---- */
-h1, h2, p, table { margin: 0 0 14px; }
-h1 { font: 24px/1.25 var(--font-pixel); text-transform: uppercase; color: var(--gold); text-shadow: var(--px) var(--px) 0 var(--ink); word-break: break-word; }
-h2 { font: 16px/1.5 var(--font-pixel); text-transform: uppercase; color: var(--cream); overflow-wrap: anywhere; }   /* the question, in big pixel type */
-.dig { font-weight: 700; }
-.points { font: 32px/1.2 var(--font-pixel); color: var(--gold); text-transform: uppercase; text-shadow: var(--px) var(--px) 0 var(--ink); }
+h1, h2, p, table { margin: 0 0 var(--sp-3); }
+h1 { font: 700 var(--px-2)/var(--lh-tight) var(--font-display); text-transform: none; color: var(--gold); text-shadow: var(--px) var(--px) 0 var(--ink); overflow-wrap: anywhere; margin-bottom: var(--sp-2); }
+h2 { font: 500 var(--px-1)/var(--lh-heading) var(--font-display); text-transform: none; letter-spacing: 0; color: var(--cream); overflow-wrap: anywhere; margin-bottom: var(--sp-4); }   /* the question: big pixel type, with lowercase */
+.dig { font: 700 var(--fs-lead)/var(--lh-heading) var(--font-text); color: var(--cream); }
+.points { font: 700 var(--px-2)/var(--lh-tight) var(--font-display); color: var(--gold); text-transform: none; text-shadow: var(--px) var(--px) 0 var(--ink); }
 main > p { overflow-wrap: anywhere; }
-@media (min-width: 700px) { h2 { font-size: 24px; } main { padding: 20px 22px 22px; } }
+@media (min-width: 700px) { h1 { font-size: var(--px-3); } h2 { font-size: var(--px-2); } main { padding: 20px 22px 22px; } }
 
 /* after an answer the question shrinks to one small line, so the panel leaves the dig site (and the floating reaction) uncovered */
-.phase-feedback h2 { font: 700 14px/1.35 var(--font-body); text-transform: none; color: var(--cream-dark); margin-bottom: 10px; }
-@media (min-width: 700px) { .phase-feedback h2 { font-size: 15px; } }
+.phase-feedback h2 { font: 400 var(--fs-small)/var(--lh-heading) var(--font-text); text-transform: none; color: var(--cream-dark); margin-bottom: var(--sp-2); }
+@media (min-width: 700px) { .phase-feedback h2 { font-size: var(--fs-body); } }
+
+.phase-feedback main { display: flex; flex-direction: column; }
+.phase-feedback main > * { flex: none; }
+.phase-feedback .points { order: 1; margin: var(--sp-2) 0 var(--sp-1); padding-top: var(--sp-3); border-top: var(--px) solid var(--fill-lit); }
+.phase-feedback .dig { order: 2; margin-bottom: var(--sp-2); }
+.phase-feedback .points + p { order: 3; font-size: var(--fs-small); color: var(--cream-dark); margin-bottom: var(--sp-3); }          /* the rarity line */
+.phase-feedback .points + p + p { order: 4; font-size: var(--fs-body); line-height: var(--lh-body); margin-bottom: var(--sp-4); }      /* the explanation */
+.phase-feedback main > button { order: 5; }
+.phase-feedback h2 + p { margin-bottom: var(--sp-1); }
+.phase-feedback h2 + p + p:not(.dig) { font-size: var(--fs-small); color: var(--cream-dark); }                                         /* "Counted as ..." */
+main > p { max-width: 62ch; }
 
 /* ---- buttons: flat gold block, dark strip under it, notched corners ---- */
 button {
-  font: 16px/1 var(--font-pixel); text-transform: uppercase; letter-spacing: 0;
+  font: 700 var(--px-1)/1 var(--font-display); text-transform: none; letter-spacing: 0;
   min-height: 48px; min-width: 48px; padding: 14px 20px; margin: 0;
   color: var(--fill); background: var(--gold); border: 0; cursor: pointer;
   box-shadow: inset 0 calc(var(--px) * -1) 0 0 var(--gold-dark), inset 0 var(--px) 0 0 var(--gold-lit);
@@ -174,7 +207,7 @@ main > button { width: 100%; }
 
 /* ---- input: cream field, dark text, 18 px so iOS never zooms, 48 px tall ---- */
 input {
-  display: block; width: 100%; font: 18px/1.2 var(--font-body); min-height: 48px; padding: 10px 12px;
+  display: block; width: 100%; font: 400 var(--fs-lead)/1.25 var(--font-text); min-height: 48px; padding: 10px 12px;
   color: var(--fill); background: var(--field); border: var(--px) solid var(--line); border-radius: 0;
   box-shadow: inset 0 var(--px) 0 0 var(--cream-dark);
 }
@@ -186,7 +219,7 @@ main:focus-visible { outline-offset: calc(var(--px) * -2); }
 /* ---- timer (lives in the top bar): seconds in pixel digits, a segmented bar that drains by itself (CSS only), colour jump in the last quarter ---- */
 .timer {
   display: block; margin: 0 0 10px; padding: 5px 12px 14px;
-  font: 16px/1 var(--font-pixel); color: var(--ok); background-color: var(--ink);
+  font: 700 var(--px-1)/1 var(--font-display); color: var(--ok); background-color: var(--ink);
   background-image:
     repeating-linear-gradient(90deg, transparent 0 calc(5% - 2px), var(--ink) calc(5% - 2px) 5%),   /* the gaps between the 20 segments */
     linear-gradient(currentColor, currentColor);
@@ -204,10 +237,11 @@ main:focus-visible { outline-offset: calc(var(--px) * -2); }
 .msg { min-height: 1.6em; margin: 0 0 8px; color: var(--cream-dark); }
 .msg:not(:empty) { padding: 8px 12px; background: var(--fill-lit); color: var(--danger); border-left: var(--px) solid var(--danger); }
 .msg button { min-height: 44px; margin: 4px 0 0 8px; padding: 10px 14px; }
+.msg { font-size: var(--fs-body); line-height: var(--lh-body); }
 
 /* ---- end screen table: cards on a phone (data-label on each td) ---- */
 table { width: 100%; border-collapse: collapse; }
-th { font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--gold); text-align: left; padding: 8px; }
+th { font: 700 var(--fs-small)/1.2 var(--font-text); text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); text-align: left; padding: 8px; }
 td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: top; overflow-wrap: anywhere; }
 @media (max-width: 34rem) {
   thead { position: absolute; left: -9999px; }
@@ -217,48 +251,48 @@ td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: 
   td { border: 0; padding: 2px 4px; }
   td[data-label]::before { content: attr(data-label) ": "; color: var(--cream-dark); }
   td:first-child { font-weight: 700; }
-  td:last-child { color: var(--gold); font: 16px/1.4 var(--font-pixel); }
+  td:last-child { color: var(--gold); font: 700 var(--px-1)/1.2 var(--font-display); }
 }
 
 /* ---- museum shelf (end screen, also the share image): the finds at 2x ---- */
 .museum { list-style: none; margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-.museum li { padding: 8px 4px 6px; text-align: center; font-size: 13px; line-height: 1.25; background: var(--fill-lit); box-shadow: inset 0 calc(var(--px) * -2) 0 0 var(--line); clip-path: var(--notch); }
+.museum li { padding: 8px 4px 6px; text-align: center; font-size: var(--fs-small); line-height: 1.25; background: var(--fill-lit); box-shadow: inset 0 calc(var(--px) * -2) 0 0 var(--line); clip-path: var(--notch); }
 .museum img { display: block; width: 96px; height: 96px; margin: 0 auto 4px; image-rendering: pixelated; }
 
 /* ================= the end screen: total, curve, ranks, finds, countdown ================= */
-.total { font: 48px/1 var(--font-pixel); color: var(--gold); text-shadow: var(--px) var(--px) 0 var(--ink); margin: 0 0 4px; }
-.sub { margin: 0 0 14px; font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--cream-dark); }
+.total { font: 700 var(--px-4)/1 var(--font-display); color: var(--gold); text-shadow: var(--px) var(--px) 0 var(--ink); margin: 0 0 var(--sp-1); }
+.sub { margin: 0 0 var(--sp-4); font: 700 var(--fs-small)/1.2 var(--font-text); text-transform: uppercase; letter-spacing: 0.12em; color: var(--cream-dark); }
 .curve { margin: 0 0 16px; }
 .curve-svg { display: block; width: 100%; height: auto; }
 .curve-area { fill: rgba(255, 208, 56, 0.16); stroke: none; }
 .curve-line { fill: none; stroke: var(--gold); stroke-width: 2; stroke-linejoin: round; }
 .curve-base, .curve-tick { stroke: var(--line); stroke-width: 1; }
-.curve-axis { fill: var(--cream-dark); font: 9px var(--font-body); }
+.curve-axis { fill: var(--cream-dark); font: 400 12.5px var(--font-text); }
 .curve-you { stroke: var(--urgent); stroke-width: 1.5; }
 .curve-dot { fill: var(--urgent); stroke: var(--cream); stroke-width: 1.5; }
-.curve-youtext { fill: var(--urgent); font: 700 10px var(--font-body); letter-spacing: 0.06em; }
+.curve-youtext { fill: var(--urgent); font: 700 13px var(--font-text); letter-spacing: 0.08em; }
 .curve figcaption { margin-top: 6px; }
-.curve-better { margin: 0 0 2px; font: 16px/1.3 var(--font-pixel); text-transform: uppercase; color: var(--cream); }
-.curve-estimate { margin: 0; font-size: 13px; color: var(--cream-dark); }
+.curve-better { margin: 0 0 var(--sp-1); font: 700 var(--fs-lead)/var(--lh-heading) var(--font-text); color: var(--cream); }
+.curve-estimate { margin: 0; font-size: var(--fs-small); line-height: 1.4; color: var(--cream-dark); }
 .ranks, .finds { margin: 0 0 16px; }
-.ranks h3, .finds h3 { margin: 0 0 8px; font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--gold); }
+.ranks h3, .finds h3 { margin: 0 0 var(--sp-2); font: 600 var(--px-1)/1.2 var(--font-display); text-transform: none; color: var(--gold); }
 .ranks ol, .finds ol { list-style: none; margin: 0; padding: 0; }
 .ranks li { display: grid; grid-template-columns: 6.4rem 1fr; column-gap: 8px; padding: 8px 8px; border-top: var(--px) solid var(--fill-lit); align-items: baseline; }
-.ranks .range { grid-row: 1 / span 2; white-space: nowrap; font: 16px/1.3 var(--font-pixel); color: var(--cream-dark); }
-.ranks .rank-name { font-weight: 700; }
-.ranks .rank-line { font-size: 14px; color: var(--cream-dark); }
+.ranks .range { grid-row: 1 / span 2; white-space: nowrap; font: 600 var(--px-1)/1.2 var(--font-display); color: var(--cream-dark); }
+.ranks .rank-name { font-weight: 700; font-size: var(--fs-body); }
+.ranks .rank-line { font-size: var(--fs-small); line-height: 1.4; color: var(--cream-dark); }
 .ranks li.now { background: var(--fill-lit); box-shadow: inset var(--px) 0 0 0 var(--gold); }
 .ranks li.now .range, .ranks li.now .rank-name { color: var(--gold); }
 .finds li { display: grid; grid-template-columns: 48px 1fr auto; gap: 10px; padding: 8px 4px; border-top: var(--px) solid var(--fill-lit); align-items: center; }
 .finds .find-img { width: 48px; height: 48px; image-rendering: pixelated; }
 .finds .find-text { display: grid; gap: 1px; min-width: 0; }
-.finds .find-q { font: 600 11px/1.3 var(--font-body); letter-spacing: 0.05em; text-transform: uppercase; color: var(--cream-dark); overflow-wrap: anywhere; }
-.finds .find-a { font-size: 16px; overflow-wrap: anywhere; }
-.finds .find-r { font-size: 13px; color: var(--cream-dark); }
-.finds .find-pts { font-size: 13px; color: var(--cream-dark); text-align: right; white-space: nowrap; }
-.finds .find-pts b { font: 24px/1 var(--font-pixel); color: var(--gold); }
-.next-dig { margin: 0 0 14px; font: 16px/1.3 var(--font-pixel); text-transform: uppercase; color: var(--cream-dark); }
-.next-dig time { color: var(--ok); }
+.finds .find-q { font: 700 var(--fs-micro)/1.3 var(--font-text); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream-dark); overflow-wrap: anywhere; }
+.finds .find-a { font-size: var(--fs-body); line-height: 1.3; overflow-wrap: anywhere; }
+.finds .find-r { font-size: var(--fs-small); color: var(--cream-dark); }
+.finds .find-pts { font-size: var(--fs-micro); color: var(--cream-dark); text-align: right; white-space: nowrap; }
+.finds .find-pts b { font: 700 var(--px-1)/1 var(--font-display); color: var(--gold); }
+.next-dig { margin: 0 0 var(--sp-3); font: 400 var(--fs-small)/1.3 var(--font-text); color: var(--cream-dark); }
+.next-dig time { font: 700 var(--px-1)/1 var(--font-display); color: var(--ok); margin-left: var(--sp-1); }
 
 /* ---- compact: short screens (on-screen keyboard open, landscape phones): a one-row bar and a smaller panel keep the scene in view ---- */
 .compact #hud { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 4px; }
@@ -273,7 +307,7 @@ td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: 
 .compact .squares { gap: 3px; }
 .compact .hud-score { padding: 6px 8px; }
 .compact main { padding: 12px 14px 14px; max-height: calc(var(--vh, 100dvh) - var(--ptop) - 8px); }
-.compact h2 { font-size: 16px; margin-bottom: 10px; }
+.compact h2 { font-size: var(--px-1); line-height: 1.25; margin-bottom: 10px; }
 .compact form { grid-template-columns: 1fr auto; gap: 8px; }
 .compact form button { width: auto; }
 .compact .msg { min-height: 0; margin-bottom: 4px; }
@@ -281,12 +315,17 @@ td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: 
   main { left: auto; right: 12px; width: min(26rem, 52vw); }
 }
 
+/* ---- wide, low windows (about 1366 x 650): the panel moves to the right, the dig site stays whole on the left ---- */
+.side main { left: auto; right: 24px; width: min(30rem, 36vw); margin: 0; top: var(--ptop); max-height: calc(var(--vh, 100dvh) - var(--ptop) - 12px); }
+.side #hud { left: calc(var(--cx) - 15rem); right: auto; width: 30rem; max-width: calc(var(--cx) * 2 - 24px); margin: 0; }
+.side .no-hud main { top: 12px; max-height: calc(var(--vh, 100dvh) - 24px); }
+
 /* ---- reduced motion: nothing has to move. The timer keeps its colour jump (not motion); the bar drain, the blink, the sprites, the clouds, the bird
    and the floating label stop (the label still shows, at rest). ---- */
 @media (prefers-reduced-motion: reduce) {
   .timer { animation: urgent var(--secs) step-end forwards; background-image: none; padding-bottom: 8px; }
   button:active { transform: none; }
-  #scene .sprite, #scene .machine-wrap, #scene .find-wrap, #scene .clouds, #scene .twinkle, #scene .grass, #scene .bird, #scene .react, #scene .world { animation: none !important; }
+  #scene .sprite, #scene .slot, #scene .machine-wrap, #scene .find-wrap, #scene .clouds, #scene .twinkle, #scene .grass, #scene .bird, #scene .react, #scene .world { animation: none !important; }
   #scene .vignette { display: none; }
   #scene .bird { display: none; }
   #scene .react { transform: translate(-50%, -8px); }

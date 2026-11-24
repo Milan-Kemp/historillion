@@ -8,7 +8,9 @@
 //   scene.ready()                                                // question 1 only: a quiet start beat (he looks around and settles his hat), about 1.2 s
 //   scene.idle()                                                 // every other question: a calm loop with a random micro-action every few seconds
 //   scene.dig(key, label)                                        // after an answer: common | uncommon | none about 1.1 s; rare about 1.9 s; veryRare about 2.5 s
-//   scene.reset()                                                // = idle()
+//   scene.reset()                                                // = idle() (does NOT clear the finds)
+//   scene.newDay()                                               // clear the finds bench: call it when a new game starts (question 1)
+//   scene.finds / scene.setFinds([...])                          // the day's finds so far / restore them; dig() adds a find, it flies to the bench after the beat
 //   scene.sound.play(name) / scene.sound.toggle() / scene.sound.muted     (see sound.js; the scene plays dig, reveal, rumble and next sounds itself)
 //
 // Any key press or tap during a dig beat jumps to its end state at once; Next and the input are never blocked. Under prefers-reduced-motion nothing moves:
@@ -84,7 +86,8 @@ export function mountScene(parent = document.body, opts = {}) {
   const findWrap = el("div", "find-wrap");
   findWrap.append(find, sparkle);
   const react = el("div", "react");
-  stage.append(machineWrap, man, findWrap, react);
+  const slots = el("div", "slots");                          // the finds bench: the day's finds stand here, in the order found
+  stage.append(machineWrap, man, slots, findWrap, react);
   world.append(layer("sky", "sky.png"), layer("twinkle", "twinkle.png"), el("div", "layer clouds"), layer("far", "far.png"), layer("ground", "ground.png"),
     el("div", "grass"), layer("mid", "mid.png"), el("div", "bird"), stage);
   const vignette = el("div", "vignette");
@@ -142,6 +145,38 @@ export function mountScene(parent = document.body, opts = {}) {
   };
   const phase = (on) => document.body.classList.toggle("phase-feedback", on);   // after an answer the question shrinks (CSS), the dig site stays clear
 
+  // ---- the day's finds, kept on the bench (7 numbered places; slot i is centred at stage x = 42 + 17 i, its foot on the bench at row 118) ----
+  const SLOT = { x: (i) => 42 + 17 * i, foot: 118, sprite: { shard: 0, coin: 1, crown: 2, statue: 3, rock: 4 } };
+  let finds = [];                                              // the day's finds, by sprite name
+  let pending = null;                                          // a find that is still in the pit or in his hands, waiting to go to the bench
+  function placeFind(name, animate) {                          // put a find on the next free place (at most 7); animate = it flies over from the pit
+    if (finds.length >= 7) return;
+    const i = finds.length;
+    finds.push(name);
+    const slot = el("div", "sprite slot");
+    slot.style.setProperty("--k", SLOT.sprite[name]);
+    slot.style.left = `${SLOT.x(i) - 12}px`;
+    slot.style.top = `${SLOT.foot - 29}px`;
+    slot.dataset.n = String(i + 1);
+    if (animate && !reduce.matches) {
+      slot.style.setProperty("--dx", `${118 - SLOT.x(i)}px`);
+      slot.style.setProperty("--dy", `${60 - (SLOT.foot - 14)}px`);
+      delay(slot);
+      slot.classList.add("fly");
+    }
+    slots.append(slot);
+  }
+  function putPending(animate) {
+    if (!pending) return;
+    const name = pending;
+    pending = null;
+    find.hidden = true;
+    sparkle.hidden = true;
+    findWrap.classList.remove("carry", "carried");
+    placeFind(name, animate);
+  }
+  const flush = () => putPending(false);                       // a new beat or question starts: the find is on the bench at once
+
   // ---- idle: a calm loop, with a random micro-action (never a dig) every few seconds ----
   let lastMicro = "";
   function scheduleMicro() {
@@ -156,6 +191,7 @@ export function mountScene(parent = document.body, opts = {}) {
   }
   function idle() {
     const wasFeedback = phaseWas;
+    flush();
     cancel();
     hideActors();
     phase(false);
@@ -167,6 +203,7 @@ export function mountScene(parent = document.body, opts = {}) {
 
   // a quiet start beat for the first question: he looks around and settles his hat (not a dig)
   function ready() {
+    flush();
     cancel();
     hideActors();
     phase(false);
@@ -182,12 +219,14 @@ export function mountScene(parent = document.body, opts = {}) {
   // ---- after an answer ----
   // Every beat is a list of [seconds, action]; settle() runs the end state directly. Good answers get a build-up: rare about 1.9 s, very rare about 2.5 s.
   function dig(key, label) {
+    flush();
     cancel();
     hideActors();
     phase(true);
     phaseWas = true;
     const k = DIG[key] ? key : "none";
     const d = DIG[k];
+    pending = d.find;                                           // goes to the bench at the end of the beat
     const text = label ?? REACTIONS[k];
     const big = k === "rare" || k === "veryRare";
     const findRow = FIND_ROW[d.find];
@@ -214,10 +253,7 @@ export function mountScene(parent = document.body, opts = {}) {
       rumble(false);
       if (d.tool === "digger") { machine.hidden = false; machineWrap.classList.remove("slide-in"); play(machine, MACHINE.digger_dig, 0.5, "once"); hold(machine); }
       if (d.tool === "truck") { machine.hidden = false; machineWrap.classList.remove("slide-in"); play(machine, MACHINE.truck_tip, 0.6, "once"); hold(machine); }
-      find.hidden = false;
-      play(find, [findRow, 6], 0.3, "once");
-      hold(find);
-      findWrap.classList.remove("carry"); findWrap.classList.toggle("carried", big);
+      putPending(false);                                       // the end state: the find stands on the bench
       play(man, MAN[`rx_${k}`], 0.5, "once");
       hold(man);
       sparkle.hidden = true;
@@ -246,6 +282,7 @@ export function mountScene(parent = document.body, opts = {}) {
       later(() => { revealFind(0.35); sound.play("reveal-rare"); }, 1.0);
       later(carryFind, 1.3);
       later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); vignetteOff(); }, 1.4);
+      later(() => putPending(true), 1.6);                       // the crown flies to the bench while he celebrates
     } else if (k === "veryRare") {                              // about 2.5 s
       vignetteOn(true);                                         // a beat of silence under the vignette, then the truck
       later(() => { machine.hidden = false; slide(-110, 0.45); play(machine, MACHINE.truck_drive, 0.45, "loop"); play(man, MAN.watch_truck, 0.8, "loop"); sound.play("rumble"); }, 0.3);
@@ -254,11 +291,13 @@ export function mountScene(parent = document.body, opts = {}) {
       later(() => { revealFind(0.45); sound.play("reveal-veryRare"); }, 1.5);
       later(carryFind, 1.95);
       later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); vignetteOff(); }, 2.0);
+      later(() => putPending(true), 2.25);
     } else {                                                    // common, uncommon, none: about 1.1 s
       sound.play(`dig-${d.tool}`);
       play(man, MAN[d.tool], 0.5, "once");
       later(() => { revealFind(0.3); sound.play(`reveal-${k}`); }, 0.3);
       later(() => { play(man, MAN[`rx_${k}`], 0.5, "once"); showLabel(); }, 0.55);
+      later(() => putPending(true), 0.85);
     }
     clock = 0;
   }
@@ -309,24 +348,40 @@ export function mountScene(parent = document.body, opts = {}) {
     const vv = window.visualViewport;
     const vw = window.innerWidth;
     const vh = vv ? vv.height : window.innerHeight;
+    const root_ = document.documentElement;
     const compact = vh < 560;
-    document.documentElement.classList.toggle("compact", compact);   // keyboard open or a landscape phone: one-row bar, smaller panel
-    const ptop = (hudEl.hidden ? 12 : Math.ceil(hudEl.getBoundingClientRect().bottom)) + 10;
-    const reserve = compact ? 170 : Math.min(vh * 0.5, 340);           // room kept for the panel
-    const top = ptop + reserve + 4;
-    const need = 88;                                                   // native rows the stage needs: from the floating label (stage row 12) to the pit floor (100)
-    const sMin = Math.ceil(Math.max(vw / 640, vh / 460, 2));
-    const sFit = Math.floor(Math.max(vh - 8 - top, need * 2) / need);
-    const sWide = Math.max(Math.floor(vw / 125), 2);                   // the stage is about 125 art pixels wide
-    const s = Math.max(sMin, Math.min(4, sFit, sWide));
-    // The width needs a bigger zoom than the height allows (laptop windows, about 1366 x 650): let the stage rise under the panel instead of falling off the bottom.
-    const topUsed = s > sFit ? Math.min(top, vh - 8 - need * s) : top;
-    const sy = Math.round((topUsed + Math.max(vh - 8 - topUsed - need * s, 0) / 2) / s - 12);   // the first row we need is stage row 12
+    root_.classList.toggle("compact", compact);                         // keyboard open or a landscape phone: one-row bar, smaller panel
+    root_.classList.remove("side");
+    const hudBottom = () => (hudEl.hidden ? 12 : Math.ceil(hudEl.getBoundingClientRect().bottom));
+    let ptop = hudBottom() + 10;
+    const need = 118;                                                   // native rows the stage needs: from the floating label (stage row 12) to the bottom of the bench (130)
+    const sMin = Math.ceil(Math.max(vw / 640, vh / 460, 2));            // the picture must cover the screen
+    const sWide = Math.max(Math.floor(vw / 125), 2);                    // the stage is about 125 art pixels wide
+    const reserve = compact ? 170 : Math.min(vh * 0.5, 340);            // room kept for the panel
+    let top = ptop + reserve + 4;
+    let sFit = Math.floor((vh - 8 - top) / need);
+    let cx = vw / 2;                                                    // the screen x the stage is centred on
+    const SIDE_W = Math.min(480, vw * 0.36);
+    if (!compact && sFit < sMin && vw >= 900) {                         // a wide, low window: the panel moves to the right and the stage gets the left part
+      root_.classList.add("side");
+      cx = (vw - SIDE_W - 36) / 2;
+      ptop = hudBottom() + 10;
+      top = ptop;
+      sFit = Math.floor((vh - 8 - top) / need);
+    }
+    const side = root_.classList.contains("side");
+    const sCover = side ? Math.ceil((vw - cx) / 320) : sMin;
+    const s = Math.max(sCover, 2, Math.min(4, sFit, side ? 4 : sWide));
+    // centred in the space below the panel when it fits; when it does not (a short phone), it rises under the panel so the pit and the bench stay on screen
+    const space = vh - 8 - top;
+    const topUsed = Math.min(top + Math.max(space - need * s, 0) / 2, vh - 8 - need * s);
+    const sy = Math.round(topUsed / s - 12);                            // the first row we need is stage row 12
     const kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;     // on-screen keyboard (iOS keeps the layout viewport)
     root.style.setProperty("--s", s);
     root.style.setProperty("--sy", sy);
-    root.style.setProperty("--ox", `${Math.round(vw / 2)}px`);
-    const rs = document.documentElement.style;
+    root.style.setProperty("--ox", `${Math.round(cx)}px`);
+    const rs = root_.style;
+    rs.setProperty("--cx", `${Math.round(cx)}px`);
     rs.setProperty("--kb", `${kb}px`);
     rs.setProperty("--vh", `${vh}px`);
     rs.setProperty("--ptop", `${ptop}px`);
@@ -338,7 +393,10 @@ export function mountScene(parent = document.body, opts = {}) {
   hudEl.hidden = true;
   idle();
   fit();
-  return { hud, idle, ready, dig, reset: idle, fit, sound };
+  // the day's finds: dig() adds one, newDay() clears them (call it when a new game starts), setFinds() restores a list (["shard", "coin", ...]), hud(null) leaves them
+  const newDay = () => { finds = []; pending = null; slots.replaceChildren(); };
+  const setFinds = (list) => { newDay(); list.forEach((n) => placeFind(n, false)); };
+  return { hud, idle, ready, dig, reset: idle, fit, sound, newDay, setFinds, get finds() { return [...finds]; } };
 }
 
 // items: [{ find: "coin", label: "Gold coin" }, ...]  -> <ul class="museum">, one case per find (end screen, also the share image)

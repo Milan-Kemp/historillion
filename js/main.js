@@ -74,7 +74,7 @@ function ask(day, i, results) {
   if (scene) {
     scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), timer, soundLabel: t.soundLabel });
     // The "picks up his shovel" beat looks like digging for no reason, so only the first question gets it.
-    if (i === 0) scene.ready(); else scene.idle();
+    if (i === 0) { scene.newDay(); scene.ready(); } else scene.idle();
     show(el("h2", { textContent: question.prompt }), form, msg);
   } else {
     show(
