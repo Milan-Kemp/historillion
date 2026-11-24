@@ -32,6 +32,8 @@ export const t = {
   youDug: (tool, find) => `You dug up a ${find.toLowerCase()} with a ${tool.toLowerCase()}.`,
   scoreLabel: (n) => `Score ${n}`,
   // Floating text over the dig site after an answer (2d kit).
+  // The word under each find on the bench (2d kit).
+  benchLabel: { none: "Nothing", common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare" },
   reaction: { none: "Nothing", common: "Common", uncommon: "Nice!", rare: "Rare find!", veryRare: "One in a million!" },
   soundLabel: "Sound",
   totalLabel: "points",
@@ -54,6 +56,13 @@ export const t = {
     { from: 550, name: "Lead Excavator", line: "Even the trucks listen to you." },
     { from: 640, name: "Legend of the Dig", line: "One in a million. Seriously." },
   ],
+  findsHint: "Tap a question to see every possible answer.",
+  answersFilter: "Filter by rarity",
+  answersSearch: "Search answers",
+  answersNone: "No answers match.",
+  answersYours: "You",
+  sourceN: (n) => `Source ${n}`,
+  filters: { all: "All", common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", rejected: "Not valid" },
   findCol: "Find",
   total: "Total score",
   yourAnswer: "Your answer",

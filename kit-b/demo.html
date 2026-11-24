@@ -45,7 +45,9 @@
       const form = el("form", {}, input, el("button", { type: "submit", textContent: "Submit" }));
       form.onsubmit = (e) => { e.preventDefault(); scene.sound.play("submit"); feedback(["common", "uncommon", "rare", "veryRare", "none"][Math.floor(Math.random() * 5)]); };
       hud({ timer });
-      first ? scene.ready() : scene.idle();                  // ready() only for question 1; idle() for the rest
+      first ? scene.ready() : scene.idle();
+      if (q.has("urgent")) { scene.urgent(true); if (q.has("freeze")) { const e = document.querySelector(".urgent-edge"); e.style.animationDelay = "-0.5s"; e.style.animationPlayState = "paused"; } }                 // &urgent=1: the last-5-seconds edge pulse (&freeze=1 holds it at full strength); in the game: scene.urgent(left <= 5 && left > 0) every tick
+                  // ready() only for question 1; idle() for the rest
       show(el("h2", { textContent: QUESTION }), form, msg);
       if (q.get("hint")) msg.replaceChildren("Did you mean ", el("button", { type: "button", textContent: "→ Nero" }));
       if (!q.get("nofocus")) input.focus();
@@ -65,6 +67,18 @@
       const sum = out.reduce((s, b) => s + b.p, 0);
       return out.map((b) => ({ ...b, p: b.p / sum }));
     }
+    // a mock of the "All answers" section with the classes js/answers.js uses (the real markup may differ: see FULLSCREEN.md)
+    function answersMock() {
+      const chip = (t, n, on) => el("button", { className: "chip", type: "button", "aria-pressed": String(!!on) }, t + " ", el("small", { textContent: n }));
+      const item = (name, pts, text, now) => { const li = el("li", { className: "answer-item" + (now ? " now" : "") }, el("button", { className: "answer-row", type: "button" }, el("span", { className: "answer-name", textContent: name }), el("b", { textContent: pts })));
+        if (text) li.append(el("p", { textContent: text }), el("span", { className: "answer-source" }, "Source: ", el("a", { href: "#", textContent: "Wikipedia, Cigarette" }))); return li; };
+      return el("section", { className: "answers" }, el("h3", { textContent: "All answers" }),
+        el("div", { className: "answer-tabs", role: "tablist" }, el("button", { role: "tab", "aria-selected": "true", type: "button", textContent: "All answers" }), el("button", { role: "tab", "aria-selected": "false", type: "button", textContent: "Your answers" })),
+        el("div", { className: "answer-filters" }, chip("All", "1,130", true), chip("Very rare", "1"), chip("Rare", "112"), chip("Uncommon", "992"), chip("Common", "22")),
+        el("input", { className: "answer-search", type: "search", placeholder: "Search all answers…", "aria-label": "Search all answers" }),
+        el("ul", { className: "answer-list" }, item("Medicated cigarette", "+100", "Grimault’s Indian Cigarettes were advertised in 1907 for relieving asthma.", true), item("Absorbable coated sponge", "+85"), item("Abstract", "+85"), item("Adai", "+85"), item("Ampoule", "+85"), item("Anticoagulant and preservative solution for blood", "+85")),
+        el("button", { className: "answer-more", type: "button", textContent: "Show more (100 of 1,130)" }));
+    }
     function end() {
       scene.hud(null);
       scene.reset();
@@ -76,11 +90,13 @@
       const pctl = bins.filter((b) => b.to <= score).reduce((s, b) => s + b.p, 0);
       const prompts = ["Name a sport where you're allowed to kick the ball", "Name a country that has an A as its second letter", "Name a city on an island (towns count too)", "Name an album by an artist with more than 1 million monthly listeners", "Name an animal with webbed feet", "Name a video game company", "Name a form medicine comes in (like a pill)"];
       const answers = ["Gaelic football", "Palau", "Reykjavik", "Late Registration", "ge", "Psyonix", "Powder"];
+      if (q.get("only") === "answers") return show(answersMock());
       show(el("h1", { className: "total" }, el("span", { className: "sr", textContent: "Total: " }), String(score)), el("p", { className: "sub", textContent: "points" }),
         endCurve({ bins, total: score, percentile: pctl }),
         rankList({ total: score, ranks: RANKS, title: "Your rank" }),
         findsList({ results: keys.map((k, i) => ({ prompt: prompts[i], typed: answers[i], rarity: rarityShort[k], find: DIG[k].find, findLabel: names[DIG[k].find], pts: points[k] })), title: "Your finds", pointsLabel: "pts" }),
         nextDig({ label: "Next dig in" }),
+        ...(q.has("answers") ? [answersMock()] : []),
         el("button", { textContent: "Play again", onclick: intro }));
     }
     const s = q.get("screen") ?? "intro";

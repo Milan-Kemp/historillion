@@ -124,3 +124,18 @@ test("bins: `to` is exclusive and every integer score lands in exactly one bin",
     assert.equal(b.filter((x) => score >= x.from && score < x.to).length, 1, `score ${score}`);
   }
 });
+
+test("answerList: rarity filter, search, order", async () => {
+  const { answerList } = await import("../js/answers.js");
+  const q1 = q(1), q6 = q(6);
+  const all = answerList(q1);
+  assert.equal(all.length, q1.answers.length + q1.rejected.length);
+  assert.equal(all.at(-1).key, "rejected"); // not valid answers last
+  assert.ok(all[0].entry.prior_share >= all[1].entry.prior_share); // most common first
+  assert.ok(answerList(q1, { rarity: "rejected" }).every((i) => i.key === "rejected"));
+  assert.ok(answerList(q1, { rarity: "rare" }).every((i) => i.key === "rare"));
+  assert.deepEqual(answerList(q1, { query: "NERO" }).map((i) => i.entry.canonical), ["Nero"]);
+  assert.equal(answerList(q1, { query: "octav" }).length, 1); // finds an alias
+  assert.deepEqual(answerList(q6, { query: "ming dynasty" }).map((i) => i.entry.canonical), ["Ming"]); // strip words are ignored
+  assert.equal(answerList(q1, { query: "zzz" }).length, 0);
+});

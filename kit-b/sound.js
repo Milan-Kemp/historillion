@@ -7,7 +7,7 @@
 //   sound.muted; sound.onChange(fn)
 //
 // Events: tick (last 5 seconds), submit, wrong, hint, dig-brush, dig-pickaxe, dig-digger, dig-truck, dig-spoon, reveal-none, reveal-common, reveal-uncommon,
-// reveal-rare, reveal-veryRare, rumble (build-up), next, finish. The scene plays the dig, reveal, rumble and next sounds itself; main.js only needs
+// reveal-rare, reveal-veryRare, rumble (build-up), clink, brushoff, next, finish. The scene plays the dig, reveal, rumble and next sounds itself; main.js only needs
 // tick, submit, wrong, hint and finish. Sound has its own toggle and ignores prefers-reduced-motion (that setting is about movement).
 
 const KEY = "historillion.sound";
@@ -100,6 +100,8 @@ export function createSound() {
       arp(t + 0.12, [N.C5, N.E5, N.G5, N.C6, N.E6, N.G6, N.C7], 0.06, { vol: 0.13 });
       noise(t, 0.7, { freq: 6000, filter: "highpass", vol: 0.05, delay: 0.3 });
     },
+    clink: (t) => { tone(t, 2093, 0.06, { vol: 0.12 }); tone(t, 1568, 0.08, { vol: 0.1, delay: 0.03 }); noise(t, 0.05, { freq: 5000, filter: "highpass", vol: 0.1 }); },
+    brushoff: (t) => [0, 0.12, 0.24, 0.36, 0.48].forEach((d) => noise(t, 0.08, { freq: 4000, filter: "highpass", vol: 0.07, delay: d })),
     rumble: (t) => { noise(t, 0.7, { freq: 120, filter: "lowpass", vol: 0.35 }); tone(t, 38, 0.7, { type: "sine", to: 52, vol: 0.25 }); },
     next: (t) => tone(t, 520, 0.03, { vol: 0.1 }),
     finish: (t) => { arp(t, [N.C5, N.E5, N.G5, N.C6], 0.1, { vol: 0.14 }); tone(t, N.C3, 0.5, { type: "triangle", vol: 0.16 }); tone(t, N.C6, 0.4, { vol: 0.12, delay: 0.3 }); },

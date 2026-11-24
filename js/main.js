@@ -2,6 +2,7 @@ import { t } from "./strings/en.js";
 import { match, suggest } from "./matching.js";
 import { points, rarityKey } from "./scoring.js";
 import { scoreDistribution, bins, percentile } from "./distribution.js";
+import { resultsList } from "./answers.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
@@ -136,6 +137,7 @@ function ask(day, i, results) {
     timer.textContent = t.seconds(Math.max(left, 0));
     timer.classList.toggle("low", left <= SECONDS / 4);
     if (left <= 5 && left > 0 && left !== lastTick) { lastTick = left; scene?.sound.play("tick"); }
+    scene?.urgent(left <= 5 && left > 0);
     if (left <= 0) timeUp();
   }, 100);
   form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
@@ -147,7 +149,7 @@ function feedback(day, i, results) {
   const total = results.reduce((s, x) => s + x.pts, 0);
   if (scene) {
     scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), soundLabel: t.soundLabel });
-    scene.dig(r.key, t.reaction[r.key]);
+    scene.dig(r.key, t.reaction[r.key], t.benchLabel[r.key]);
   }
   show(
     ...(scene ? [] : [el("p", { textContent: t.question(i + 1, day.questions.length) })]),
@@ -176,7 +178,10 @@ function end(day, results) {
       el("p", { className: "sub", textContent: t.totalLabel }),
       endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve }),
       endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle }),
-      endKit.findsList({ results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })), title: t.findsTitle, pointsLabel: t.pointsShort }),
+      resultsList({
+        day, t, spriteUrl: (name) => `${KIT}/sprites/finds/${name}.png`,
+        results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, name: r.name, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })),
+      }),
       endKit.nextDig({ label: t.nextDig }),
       el("button", { textContent: t.playAgain, onclick: () => location.reload() }),
     );

@@ -1,8 +1,49 @@
-# 2D kit: fullscreen dig scene, v4 (kept finds and typography)
+# 2D kit: fullscreen dig scene, v5 (dig site, bench, ambient life, urgency, glass panels, All answers)
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
+
+## v5 (this version): a believable dig site, a spread-out bench, ambient life, richer digs, urgency, glass panels, "All answers"
+
+Keep from before: the `fit()` logic (`topUsed`, and the `side` layout for wide low windows) is unchanged except for the stage window (first row 18, 117 rows, see 2). New switches in `demo.html`: `&urgent=1` (+`&freeze=1` holds the edge at full strength), `&answers=1` (adds a mock "All answers" section to the end screen), `&only=answers` (just that section), `&at=1.55` (freeze a dig beat at 1.55 s), `&finds=N`.
+
+### 1. The dig site (rebuilt: `style-kit/_build/v2/site5.py`)
+A rectangular trench with a crisp cut edge and vertical walls: the north wall shows its strata (topsoil, clay, chalk, a thin charcoal layer, dark earth) with shards, bones and stones sticking out; the floor is trowelled, with a lower test square, a row of foundation stones, a post-hole, a black-and-white **scale bar** and a red-and-white **ranging pole**. A **string grid** with red stakes. A **north-arrow board** on a stake, **spoil heaps** north and east of the trench (with a shovel stuck in one), a **sieving frame** with a pile of sifted earth under a **blue shade tarp that flutters**, a trestle table with **finds trays and labelled bags**, crates, a wheelbarrow, a **site hut**, an orange **safety fence** with mesh, a **rope barrier** on posts, a **survey tripod** with an instrument, two lanterns, a signpost. Kept free: the man's working area, the label rows, the bench. The old ruin wall is gone from the dig site (the far hills still have the temple and arch).
+
+### 2. The finds bench (two tiers, zigzag, labels)
+The 7 places are spread over **two tiers**: places 1, 3, 5, 7 stand on the upper tier, 2, 4, 6 on the lower one, so neighbours are never beside each other (same-tier places are about 31 art pixels apart). The order is still 1 to 7 left to right. Under each find: **"1 Common", "2 Uncommon", "3 Rare", "4 Very rare", "5 Nothing"** as real text (13 px on screen whatever the zoom, bold, on a dark chip, rarity colour), above all finds so a find in front never hides a label. The bench fits a 375 px phone (checked at 375 x 812). The stage window is now rows 18 to 134 (117 rows). New: `BENCH_LABELS` export, and `scene.dig(key, label, benchLabel)` (the third argument is the word under the find; default English from `BENCH_LABELS`); `mountScene(document.body, { benchLabels: {...} })` replaces them all.
+Limit: on a phone the tall finds (crown, statue) on the upper tier reach up to the working area's bottom rows (83 to 92) at places 3 and 5; they do not touch the pit.
+
+### 3. Ambient motion (all off under reduced motion; bird hidden)
+Three groups of grass tufts over the **whole meadow** that sway out of step (1.7 s, 2.3 s, 2.9 s periods), **tree tops** that lean and the camp **flag** (a second frame of the treeline), the **tarp**, **lantern flicker** (dithered halo, 3 frames each, two lanterns), two **birds** (46 s and 61 s crossings), the drifting clouds and twinkling stars from before. Everything changes in whole pixels with `steps()`.
+
+### 4. Longer, richer dig beats (still skippable by key, Enter or tap; Next and the input are never blocked)
+common, uncommon, none (about 2.5 s): he digs with his tool (brush 1.0 s, pickaxe 1.2 s, spoon 1.0 s), **dust puffs** and **flying soil** at the tool, a **tool clink** (spark star and sound) on the pickaxe strike and the spoon hitting stone, then a new **brush-off** row: he kneels at the pit edge and brushes the find clean while it rises out of the soil, then reacts and the find flies to the bench. rare (about 2.1 s) and very rare (about 2.6 s) keep their build-up and gain dust clouds, flying soil and a clink in the pit. New assets: `scene/fx.png` (dust, soil, clink), man row 19 `brushoff`, sounds `clink` and `brushoff`.
+
+### 5. Urgency in the last 5 seconds
+`scene.urgent(true | false)` fades a red border at the screen edges in and out **once per second** (1 Hz, under the 3-flashes-per-second limit); it is also the class `urgent` on `<body>`. With reduced motion it is a static red edge, no pulse. It is cleared automatically by `dig()`, `idle()`, `ready()` and `hud(null)`.
+**Edit in `js/main.js`**, in the timer tick of `ask()` (where you set `timer.textContent`): `scene.urgent(left <= 5 && left > 0);`. Nothing else; the existing `tick` sound can stay as it is.
+
+### 6. Glass panels (like Krillion)
+The question panel, the feedback, the end screen, the top bar chips, the sound button and the "All answers" card are now dark glass (`--glass`: 78 % of a very dark plum) with a 7 px blur, a 1 px light edge, a soft shadow and 8 px corners; the heavy cream borders and notched corners are gone from panels (buttons keep their gold look). Rows inside use a 1 px line or a faint light tint instead of boxes. Without `backdrop-filter` the panel falls back to 94 % opacity.
+**Contrast, measured against the worst case** (the brightest colour in the scene behind the glass, pure white, with no blur): cream text 9.0:1, muted cream 5.9:1, gold 6.6:1, hint/"YOU" 5.2:1, green 5.6:1, gold-lit 8.3:1; all at least 4.5:1. (The "YOU" label and curve marker changed from red to the lighter hint colour for this reason.) The timer plate stays 88 % opaque.
+
+### 7. "All answers" (`js/answers.js`, `css/answers.css`)
+I do **not** have those files, so I styled the class names you listed against the structure I assumed from the Krillion example, and the styles are now in `theme.css` (section "All answers"; you can delete `css/answers.css`). Assumed markup: `.answers` > heading + `.answer-tabs` (buttons with `aria-selected` or `.active`) + `.answer-filters` (`.chip` buttons with `aria-pressed` or `.active`, a `<small>` or `.count` for the number) + `.answer-search` (the input itself or a wrapper around it) + `.answer-list` (scrolls, max about 22 rem) of `.answer-item` > `button.answer-row` (the name, and the points as the last `<b>`, `.pts` or `.points`) + `<p>` (the explanation) + `.answer-source` (small, with a link) + `.answer-more` (a full-width button). `.answer-item.now` or `[aria-current="true"]` highlights the player's answer. `demo.html?screen=end&only=answers` shows a mock of exactly this. If your markup differs (for example a `<details>` for the explanation, or div rows), the colours, sizes and spacing still apply but a few selectors will need a rename; tell me the real structure and I will match it.
+
+### Screenshots (`previews/v5-*`)
+`v5-375-*`, `v5-1366-*` (1366 x 650), `v5-1920-*` (1920 x 1080): `intro`, `ask-urgent`, `feedback`, `end`, plus `v5-375-answers.png` and `v5-1366-answers.png`, `v5-375-urgent-full.png` and `v5-1366-urgent-full.png` (the red edge at full strength), and dig frames: `v5-375-dig-brush.png`, `v5-375-dig-pickaxe-clink.png`, `v5-375-brushoff.png`, `v5-375-rare-digger.png`, `v5-1920-brushoff.png`.
+
+### Not checked in v5
+- **"All answers" against your real DOM** (see 7).
+- **The new dig beats by eye in motion**: checked as frozen frames at chosen moments and by script; the timing (about 2.5 s for ordinary answers) is longer than before on purpose, please judge it.
+- **Sound** (`clink`, `brushoff`, and everything else) is still unheard by me.
+- **Glass over a very busy background**: contrast was computed for the brightest possible colour behind the panel, not measured pixel by pixel on every scene state; the blur only helps.
+- **Real devices**, and sizes other than 375 x 812, 375 x 470, 1366 x 650 and 1920 x 1080.
+- **Performance**: the whole-meadow grass layers are 3 images of 1280 x 348 (about 9 KB each) that change background position every 2 s; I did not profile low-end phones.
+
+---
 
 ## 0. The `topUsed` fix is kept, and extended
 `fit()` still lets the stage rise under the panel when the zoom the picture needs (`sMin`) is bigger than what fits below it (`sFit`): `topUsed = min(centred position, vh - 8 - need * s)`. v4 changes around it:
