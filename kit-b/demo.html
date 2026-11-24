@@ -17,6 +17,11 @@
     import { endCurve, rankList, findsList, nextDig, RANKS } from "./end-screen.js";
     const app = document.getElementById("app");
     const q = new URLSearchParams(location.search);
+    // ?glass=clear (no panel background, no blur) | light (very faint) | any other value is the default: what main.js does with the same parameter
+    const GLASS = { clear: ["transparent", "none"], light: ["rgba(24, 12, 20, 0.12)", "blur(4px) brightness(0.8)"] }[q.get("glass")];
+    if (GLASS) { document.documentElement.style.setProperty("--glass", GLASS[0]); document.documentElement.style.setProperty("--blur", GLASS[1]); }
+    if (q.has("hide")) document.head.append(Object.assign(document.createElement("style"), { textContent: "main img, main svg, .squares, input, main > button, form button { visibility: hidden !important; }" }));   // for the contrast tool: only the text stays
+    if (q.has("notext")) document.head.append(Object.assign(document.createElement("style"), { textContent: "main *, #hud *, main, #hud { color: transparent !important; }" }));   // for the contrast tool: the same page with the letters left out (their halo stays)
     const scene = mountScene(document.body, { still: q.has("still"), seek: q.has("at") ? Number(q.get("at")) : undefined });   // &at=1.15 freezes a dig beat at 1.15 s
     const el = (tag, props = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(props)) (k in n ? (n[k] = v) : n.setAttribute(k, v)); n.append(...kids); return n; };
     const show = (...nodes) => app.replaceChildren(...nodes);

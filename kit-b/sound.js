@@ -7,7 +7,8 @@
 //   sound.muted; sound.onChange(fn)
 //
 // Events: tick (last 5 seconds), submit, wrong, hint, dig-brush, dig-pickaxe, dig-digger, dig-truck, dig-spoon, reveal-none, reveal-common, reveal-uncommon,
-// reveal-rare, reveal-veryRare, rumble (build-up), clink, brushoff, next, finish. The scene plays the dig, reveal, rumble and next sounds itself; main.js only needs
+// reveal-rare, reveal-veryRare, rumble (build-up), clink, brushoff, next, finish. v7: hit (a pickaxe strike; play("hit", n): every n a half step higher), scrape (spoon),
+// swell-rare / swell-veryRare (a rumble that rises for 3 / 5 s), heartbeat (one lub-dub; play("heartbeat", n): louder with n), thud (the camera push), and sound.hush(seconds) / sound.unhush(): the held breath, everything near silent. The scene plays the dig, reveal, rumble and next sounds itself; main.js only needs
 // tick, submit, wrong, hint and finish. Sound has its own toggle and ignores prefers-reduced-motion (that setting is about movement).
 
 const KEY = "historillion.sound";
@@ -100,6 +101,12 @@ export function createSound() {
       arp(t + 0.12, [N.C5, N.E5, N.G5, N.C6, N.E6, N.G6, N.C7], 0.06, { vol: 0.13 });
       noise(t, 0.7, { freq: 6000, filter: "highpass", vol: 0.05, delay: 0.3 });
     },
+    hit: (t, n = 0) => { const k = 1.06 ** n; noise(t, 0.09, { freq: 600, filter: "lowpass", vol: 0.3 }); tone(t, 140, 0.1, { type: "triangle", to: 60, vol: 0.25 }); tone(t, 1400 * k, 0.07, { vol: 0.1, delay: 0.02 }); tone(t, 2100 * k, 0.08, { vol: 0.08, delay: 0.05 }); },
+    scrape: (t, n = 0) => { noise(t, 0.14, { freq: 2200 + n * 200, q: 2, vol: 0.09 }); tone(t, 1800, 0.04, { type: "triangle", vol: 0.05, delay: 0.1 }); },
+    "swell-rare": (t) => { noise(t, 3, { freq: 80, to: 420, filter: "lowpass", vol: 0.28 }); tone(t, 40, 3, { type: "sawtooth", to: 80, vol: 0.12 }); },
+    "swell-veryRare": (t) => { noise(t, 5, { freq: 80, to: 600, filter: "lowpass", vol: 0.34 }); tone(t, 38, 5, { type: "sawtooth", to: 110, vol: 0.14 }); tone(t, 76, 5, { type: "triangle", to: 220, vol: 0.06 }); },
+    heartbeat: (t, n = 0) => { const v = 0.22 + Math.min(n, 8) * 0.025; tone(t, 62, 0.14, { type: "sine", to: 40, vol: v }); tone(t, 55, 0.16, { type: "sine", to: 36, vol: v * 0.8, delay: 0.17 }); },
+    thud: (t) => { tone(t, 90, 0.18, { type: "sine", to: 35, vol: 0.3 }); noise(t, 0.12, { freq: 300, filter: "lowpass", vol: 0.2 }); },
     clink: (t) => { tone(t, 2093, 0.06, { vol: 0.12 }); tone(t, 1568, 0.08, { vol: 0.1, delay: 0.03 }); noise(t, 0.05, { freq: 5000, filter: "highpass", vol: 0.1 }); },
     brushoff: (t) => [0, 0.12, 0.24, 0.36, 0.48].forEach((d) => noise(t, 0.08, { freq: 4000, filter: "highpass", vol: 0.07, delay: d })),
     rumble: (t) => { noise(t, 0.7, { freq: 120, filter: "lowpass", vol: 0.35 }); tone(t, 38, 0.7, { type: "sine", to: 52, vol: 0.25 }); },
@@ -108,9 +115,25 @@ export function createSound() {
   };
 
   return {
-    play(name) {
+    play(name, n = 0) {
       if (!unlocked || muted || !ctx || !SOUNDS[name]) return;
-      SOUNDS[name](ctx.currentTime + 0.01);
+      SOUNDS[name](ctx.currentTime + 0.01, n);
+    },
+    hush(seconds) {                                   // the held breath: the master volume dips to almost nothing (and comes back by itself after `seconds`)
+      if (!ctx || !master) return;
+      const t = ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.03, t + 0.08);
+      master.gain.setValueAtTime(0.03, t + seconds);
+      master.gain.linearRampToValueAtTime(0.5, t + seconds + 0.1);
+    },
+    unhush() {                                        // back to full volume at once (a beat was skipped)
+      if (!ctx || !master) return;
+      const t = ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(0.5, t + 0.05);
     },
     toggle() {
       muted = !muted;

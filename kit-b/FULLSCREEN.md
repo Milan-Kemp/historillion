@@ -1,10 +1,70 @@
-# 2D kit: fullscreen dig scene, v6 (real glass, one-row bench, top-rank celebration, glitch fixes, calmer props)
+# 2D kit: fullscreen dig scene, v8 (very rare winch, clearer finds with name tag, longer digs)
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v6 (this version): real transparency, one straight bench, the top rank, the digging glitch, calmer props
+## v8 (this version): the very rare beat hauls earth OUT, clearer finds held up with a name tag, longer build-up
+
+Same hooks and API. `scene.dig(key, label, benchLabel, findName)` has an optional 4th argument (the name on the tag); `mountScene(parent, { findNames: { shard: "..." } })` changes the defaults (`Painted shard`, `Gold coin`, `Jewelled crown`, `Marble head`, `Plain rock`). v7 items 0 to 5 still apply.
+1. **Very rare, redesigned.** No truck any more (it poured earth onto the dig site). A **hand winch** (a gantry of two posts and a beam beside and over the trench, a pulley, a drum with a crank he turns) hauls buckets of earth UP out of the trench (soil and dust rise from the pit floor), tips them over the back of the trench onto the spoil heaps there, and finally its hook takes the statue and hoists it 12 px out of the pit. Nothing covers the trench, the grid, the bench or the man. New art: `scene/winch.png` (176 x 104 cells), `scene/man.png` row `crank`, `reveal`. The digger of the rare beat takes earth out of the trench and drives away; the truck sprites stay in `machine.png` unused.
+2. **Anticipation.** Common about 5 s, uncommon 6 s, none 4.5 s, rare about 8.5 s, very rare about 10.5 s (each ends at once on a key, Enter or tap). Rare: 5 scoops, push-in (one zoom step), heartbeat, held breath (tight vignette, silence), reveal. Very rare: 2 pickaxe strikes, the rig stands up, 4 buckets, two zoom steps, heartbeat, held breath, the statue lifted out. Reduced motion: end state only.
+3. **Strokes into the trench.** v7 fixed brush, pickaxe, spoon and digger; the winch bucket works inside the trench (hook y 54 to 57 = pit floor). Frame sheets: `_build/audit7/`.
+4. **Finds redrawn** (`_build/v2/finds8.py`): thick near-black outline, big silhouettes, a different colour family each: terracotta shard with a cream painted band and dark blocks, gold coin with a head and beaded rim, gold crown with red, blue and green gems and pearls, pale marble head with a laurel on a gold-trimmed plinth, dark blue-grey rock with moss. The bench versions (24 x 30) are drawn by hand at that size, not scaled down; `sprites/finds/*.png` (48 x 48, the list) and `scene/reveal.png` are updated. **Held up:** after the reveal every find is lifted out, held up for 1.1 s beside him (or hanging from the winch) with a **museum name tag** and the reaction label, then it flies to the bench. He now stays at the trench lip for every reaction.
+5. **Your end-screen styles are kept.** In `theme.css` `.answer-search`, `.chip` and the result rows are see-through (a gold outline for the active chip, no solid gold; a transparent search field with cream text); your `css/answers.css` overrides still win.
+6. **Fixed:** the seek mode (`demo.html?at=`) recursed on idle micro-actions after about 4 s (screenshots only).
+
+Not checked in v8: playback with sound; the lift and the tag at 375 and 1366 widths frame by frame (checked at 1920 and 1366 for very rare, 1920 for common); the winch on the left side next to the table at zoom 2; the find tag overlapping the reaction label at the narrowest widths.
+
+---
+
+## v7: centred end screen, glass that works with no panel at all, every stroke inside the trench, a roof instead of a tarp, long digs with real tension
+
+Same hooks and API (`scene.dig(key, label, benchLabel)` and the rest). New in the kit, nothing to call:
+- **Your two kit changes are kept.** `fit()` uses the `side` layout only for wide windows that are too low (`sFit < 3`, at least 900 px wide, not compact); the intro and end screens stay centred. The kit reads the panel glass itself: `dig-scene.js` looks at `--glass` (whatever `main.js` sets, e.g. for `?glass=clear`) and sets `html[data-glass]` to `clear`, `light` or nothing, so the text halo and the heavier type follow without any extra line in `main.js`. `demo.html` has the same `?glass=` switch.
+- A hard reload may be needed once: the scene sheets keep their names (`scene/man.png` is now 21 rows, `scene/machine.png` has 5 rows, `scene/tarp.png` is a new picture).
+
+### 1. The end screen, centred, with the scene in view
+The end (and intro) panel no longer grows to 80 % of the height. It ends where the stage begins (`--stagetop`, set by `fit()`), so the man (cheering for the top rank), the pit and the bench stay in view; the content scrolls inside the panel and **"Play again" is sticky** at its bottom edge (a normal gap when the content is short, flush while scrolling). 1920 x 1080: the panel is about 465 px tall, 375 x 812: about 390 px. On wide but low windows (1366 x 650, about 1280 x 720) the side layout still applies, as you set it. Screenshots: `previews/v7-*-end*.png`.
+
+### 2. Transparency, measured: default, `light`, `clear`
+`?glass=clear` = no panel background and no blur, `?glass=light` = 12 % glass with a 4 px blur. Without a panel the text is readable through a **dark halo on every letter**: default = soft shadow (`0 1px 3px`), `light` = a two-layer glow, `clear` = a full 1 px dark outline in 8 directions plus a soft 5 px and 12 px glow, **bold** body text, and muted cream turned into cream. Everything in the top bar, the feedback and end panels and the "All answers" card uses it; borders and shadows go away in `clear`.
+**Measured on the real pages** (`style-kit/_build/contrast7.py`, Chrome renders the glass, the blur and the halo; for each text colour the worst pixel in the 1 to 2 px ring around the letters, i.e. in the halo, at 375 x 812, 1366 x 650 and 1920 x 1080 for the ask, feedback and end screens; "bare" = the same letters against the scene alone, no glass, no halo):
+| mode | cream | muted cream | gold | green | share of the 2 px halo ring under 4.5:1 |
+|---|---|---|---|---|---|
+| default (38 % glass) | 8.6 | 5.1 | 7.3 | 8.5 | 0 % (muted cream dips to 4.2 at 2 px, end screen 1920) |
+| `light` (12 % glass) | 4.7 | 3.1 | 2.3 | 5.2 | up to 9 % |
+| `clear` (no background) | next to the outline 8 to 18 (1 px ring); weak spots 1 to 3 % (muted cream up to 17 %) | | | | see below |
+**Recommendation: keep the default 38 % glass.** `light` is marginal. `clear` reads for nearly all letters thanks to the outline, but a few pixels of the halo sit on bright scene spots; the worst values in the last run (1.0 to 1.5) came from things my method cannot separate from text (the timer bar, gradient rank text), so treat `clear` numbers as rough. After the first run I brightened muted cream and the timer green in `clear` and thickened its halo; only `clear` was re-run.
+
+### 3. Every stroke lands inside the trench
+He now stands at the **trench lip** (8 px higher and 24 px closer than before) for every dig and reaches INTO the trench: the brush, pickaxe and spoon tips, the sparks, soil and dust all land at stage x 119 to 130, y 71 to 76, inside the trench (x 90 to 150, y 22 to 80); before, the tips were at y 98, below it. He walks from the idle spot to the lip diagonally (0.3 s). The digger bucket and the truck bed already worked inside it (fx at 100 to 120 x 54 to 62, checked frame by frame). Frame sheets for every beat at 375, 1366 and 1920: `style-kit/_build/audit7/`.
+
+### 4. The roof
+The white tarp is gone. In its place (same file name, `scene/tarp.png`) a **small wooden lean-to roof** of planks in the hut's wood ramp over the sieving frame; only a little rope with a tag sways. No large pale shape is left.
+
+### 5. Longer digs, real anticipation
+Durations (all still end at once on a key, Enter or tap; Next and the input are never blocked): **common 3.5 s, uncommon 4.5 s, none 3.2 s, rare 6 s, very rare 8 s**.
+- **Common**: the brush sweeps 3 times (6 strokes), dust each time, then a 0.6 s pause where he leans in and looks, then the brush-off and the find.
+- **Uncommon**: the pickaxe chops 4 times, each with a clink, soil and chips, the pitch of the clink rising every hit; the pause; the brush-off.
+- **None**: the spoon scrapes 3 times, flicks soil out; a shorter pause; the rock.
+- **Rare (6 s)**: a rising rumble (`swell-rare`) and a vignette; the digger drives in and scoops 4 times (soil and dust from inside the trench, a clink on every second scoop); **camera push-in** one whole zoom step around the pit at 2.1 s (with a thud) ; a heartbeat from 1.2 s (accelerating, and the vignette opens a little on every beat); the digger drives away; **the held breath**: 1 s of near silence under a tight vignette closed around him and the pit, he steps up and looks in; then he leans in, the crown appears, **the camera pulls back at once** as he lifts it, sparkles, the label slams, the crown flies to the bench.
+- **Very rare (8 s)**, the biggest version: the strong vignette from the start; he strikes twice with the pickaxe (the second one rings on something hard); a 5 s rising rumble (`swell-veryRare`); the truck backs in and **tips twice** (soil and dust); **two zoom steps** (1.3 s and 3.4 s); a heartbeat from 1.6 s; the truck leaves; **the held breath** (1.2 s of silence, tight vignette, he stares); he leans in deep; the statue; the pull-back as he lifts it; confetti-like stars, the label slam.
+- **Zoom** is in whole steps (zoom `s` becomes `s + 1`, or `s + 2`; for example 3 to 4 to 5) so every pixel stays crisp; the pit stays where it is on screen (the stage is zoomed around the spot between him and the pit, so he stays in view), `fit()` keeps working during it (resize, keyboard) and the panel, the input and Next are untouched (the panel is above the scene, and see-through). The bench may leave the bottom of the screen for the moment of the push; the pull-back brings it back.
+- **Reduced motion**: no zoom, no camera, no vignette, no movement: the end pose, the find on the bench and the label.
+- New sounds in `sound.js` (all synthesized): `hit` (pickaxe, `play("hit", n)` = n half steps higher), `scrape`, `swell-rare`, `swell-veryRare`, `heartbeat`, `thud`, and `sound.hush(seconds)` / `sound.unhush()` for the held breath. `main.js` needs nothing: the scene plays them.
+- New art: `scene/man.png` has a row `peer` (he leans over the trench and looks) and the brush, pickaxe and spoon rows are now loop cycles at the trench lip; `scene/machine.png` row 4 `truck_leave` (from v6).
+
+### Not checked in v7
+- Whether the digging looks right on your machine and in motion (I checked frames, not playback); the heartbeat, swell and breath sounds were not listened to.
+- `clear` contrast: the numbers are rough (see 2); `light` and default were not re-measured after the last halo change.
+- The camera at 900 to 1100 px tablets; `backdrop-filter` in Firefox and Safari.
+- At 375 wide the bench goes partly off screen during a push (by design); the man stays in view.
+- Only 1920, 1366 and 375 audited; spoon (none) only at 1920.
+
+---
+
+## v6: real transparency, one straight bench, the top rank, the digging glitch, calmer props
 
 Same hooks and API. `fit()` keeps `topUsed` and the `side` layout; the side layout is now also used for the **intro and end screens on wide screens** (so the scene, and the man cheering for the top rank, is not hidden behind a centred panel) and whenever a wide screen (at least 900 px) would only get zoom 2 under the panel (about 1280 x 720 or 1366 x 768): it then gets zoom 3 or 4 beside the panel.
 
