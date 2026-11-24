@@ -1,19 +1,21 @@
-// Fullscreen dig scene for Historillion (2D kit, v2): a layered dusk scene, an animated archaeologist, a top bar with progress squares, a floating reaction.
-// Built with createElement (no innerHTML). Assets load relative to this file.
+// Fullscreen dig scene for Historillion (2D kit, v3): a layered dusk scene, an animated archaeologist with a living idle, a build-up for rare finds,
+// a top bar with progress squares and a sound button, floating reactions. Built with createElement (no innerHTML). Assets load relative to this file.
 //
 //   import { mountScene, museum, DIG, REACTIONS } from "./kit-b/dig-scene.js";
 //   const scene = mountScene();                                  // once at start-up: adds #scene (artwork) and #hud (top bar) before <main id="app">
-//   scene.hud({ progress: { current: 3, total: 7 }, counter: t.question(3, 7), score: t.scoreLabel(total), timer, chip })
-//        // progress = the 7 squares (filled = answered, current = highlighted); counter = the same in words, for screen readers (visually hidden);
-//        // score = text of the score chip; timer = your <p class="timer" role="timer"> (moved into the bar; omit on the feedback screen); chip = optional text chip, top left
+//   scene.hud({ progress: { current: 3, total: 7 }, counter: t.question(3, 7), score: t.scoreLabel(total), timer, chip, soundLabel })
 //   scene.hud(null)                                              // hide the bar (intro, end screen)
-//   scene.ready()                                                // a question starts: he picks up his shovel (about 1 s, never blocks, any key or tap skips it)
-//   scene.dig(key, label)                                        // after an answer: key = common | uncommon | rare | veryRare | none; label = the floating reaction text
-//                                                                // (default REACTIONS[key]; put yours in js/strings/en.js). Takes about 1.3 s; any key or tap shows the end state at once.
-//   scene.idle() / scene.reset()                                 // back to the idle pose
+//   scene.ready()                                                // question 1 only: a quiet start beat (he looks around and settles his hat), about 1.2 s
+//   scene.idle()                                                 // every other question: a calm loop with a random micro-action every few seconds
+//   scene.dig(key, label)                                        // after an answer: common | uncommon | none about 1.1 s; rare about 1.9 s; veryRare about 2.5 s
+//   scene.reset()                                                // = idle()
+//   scene.sound.play(name) / scene.sound.toggle() / scene.sound.muted     (see sound.js; the scene plays dig, reveal, rumble and next sounds itself)
 //
-// The artwork is decorative (aria-hidden): the sentence in p.dig is its text alternative, the squares have the words in .sr. Under prefers-reduced-motion
-// nothing moves: final still frames show and the reaction text appears without floating.
+// Any key press or tap during a dig beat jumps to its end state at once; Next and the input are never blocked. Under prefers-reduced-motion nothing moves:
+// the end pose shows, the vignette never appears, and the reaction label still shows, at rest. The artwork is decorative (aria-hidden); the sentence in
+// p.dig is its text alternative, the squares have the words in .sr, the sound button has an aria-label.
+
+import { createSound } from "./sound.js";
 
 export const DIG = {
   common:   { tool: "brush",   find: "shard" },
@@ -26,11 +28,16 @@ export const DIG = {
 // Default floating reactions (English). Put your own in js/strings/en.js and pass them to scene.dig(key, label).
 export const REACTIONS = { none: "Nothing", common: "Common", uncommon: "Nice!", rare: "Rare find!", veryRare: "One in a million!" };
 
-const MAN_ROW = { idle: 0, ready: 1, brush: 2, pickaxe: 3, digger: 4, truck: 5, spoon: 6, rx_none: 7, rx_common: 8, rx_uncommon: 9, rx_rare: 10, rx_veryRare: 11 };
+// rows of man.png (8 columns of 128 x 80): name -> [row, frames]
+const MAN = {
+  idle: [0, 4], wipe: [1, 8], notebook: [2, 8], glance: [3, 6], scratch: [4, 8], flask: [5, 8], ready: [6, 6],
+  brush: [7, 8], pickaxe: [8, 8], spoon: [9, 8], watch_digger: [10, 8], watch_truck: [11, 8], lean_crown: [12, 8], lift_statue: [13, 8],
+  rx_none: [14, 8], rx_common: [15, 8], rx_uncommon: [16, 8], rx_rare: [17, 8], rx_veryRare: [18, 8],
+};
+const MICRO = { wipe: 1.2, notebook: 1.6, glance: 1.2, scratch: 1.2, flask: 1.6 };       // idle micro-actions and how long each plays
+const MACHINE = { digger_drive: [0, 4], digger_dig: [1, 8], truck_drive: [2, 4], truck_tip: [3, 8] };   // rows of machine.png (144 x 80)
 const FIND_ROW = { shard: 0, coin: 1, crown: 2, statue: 3, rock: 4 };
-const MACHINE_ROW = { digger: 0, truck: 1 };
 const SPARKLE = new Set(["rare", "veryRare"]);
-const T = { ready: 1.0, dig: 0.6, findAt: 0.35, find: 0.35, rxAt: 0.65, rx: 0.6, labelAt: 0.7, label: 0.5, sparkle: 0.5 };   // seconds; the whole beat is about 1.3 s
 
 const asset = (name) => new URL(`./scene/${name}`, import.meta.url).href;
 const sprite = (kind, name) => new URL(`./sprites/${kind}/${name}.png`, import.meta.url).href;
@@ -42,37 +49,51 @@ function el(tag, className, props = {}) {
   return node;
 }
 
+function speaker(muted) {                                      // a 12 x 12 pixel speaker, built from squares with createElementNS
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 12 12");
+  svg.setAttribute("width", "24");
+  svg.setAttribute("height", "24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("shape-rendering", "crispEdges");
+  const rect = (x, y, w, h) => { const r = document.createElementNS(ns, "rect"); r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", w); r.setAttribute("height", h); r.setAttribute("fill", "currentColor"); svg.append(r); };
+  rect(1, 4, 2, 4); rect(3, 3, 1, 6); rect(4, 2, 1, 8); rect(5, 1, 1, 10);
+  if (muted) { rect(7, 4, 1, 1); rect(8, 5, 1, 1); rect(9, 6, 1, 1); rect(10, 7, 1, 1); rect(10, 4, 1, 1); rect(9, 5, 1, 1); rect(8, 6, 1, 1); rect(7, 7, 1, 1); }
+  else { rect(7, 5, 1, 2); rect(9, 3, 1, 6); rect(8, 4, 1, 1); rect(8, 7, 1, 1); }
+  return svg;
+}
+
 export function mountScene(parent = document.body, opts = {}) {
   const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
   const reduce = { get matches() { return opts.still || mq.matches; } };      // opts.still = true: final frames at once (screenshots, tests)
+  const sound = createSound();
 
   // ---- DOM: layers back to front, then the stage where the action happens ----
   const root = el("div", "", { id: "scene" });
   root.setAttribute("aria-hidden", "true");
   const world = el("div", "world");
   const layer = (cls, src) => el("img", `layer ${cls}`, { src: asset(src), alt: "", decoding: "async" });
-  const sky = layer("sky", "sky.png");
-  const twinkle = layer("twinkle", "twinkle.png");
-  const clouds = el("div", "layer clouds");
-  const far = layer("far", "far.png");
-  const ground = layer("ground", "ground.png");
-  const grass = el("div", "grass");
-  const mid = layer("mid", "mid.png");
-  const bird = el("div", "bird");
   const stage = el("div", "stage");
   const machine = el("div", "sprite machine");
+  const machineWrap = el("div", "machine-wrap");          // wrappers carry the movement (rolling in, being lifted), so it never restarts the sprite animation inside
+  machineWrap.append(machine);
   const man = el("div", "sprite man");
   const find = el("div", "sprite find");
   const sparkle = el("div", "sprite sparkle");
+  const findWrap = el("div", "find-wrap");
+  findWrap.append(find, sparkle);
   const react = el("div", "react");
-  stage.append(machine, man, find, sparkle, react);
-  world.append(sky, twinkle, clouds, far, ground, grass, mid, bird, stage);
-  root.append(world);
+  stage.append(machineWrap, man, findWrap, react);
+  world.append(layer("sky", "sky.png"), layer("twinkle", "twinkle.png"), el("div", "layer clouds"), layer("far", "far.png"), layer("ground", "ground.png"),
+    el("div", "grass"), layer("mid", "mid.png"), el("div", "bird"), stage);
+  const vignette = el("div", "vignette");
+  root.append(world, vignette);
   const hudEl = el("div", "", { id: "hud" });
   parent.prepend(root, hudEl);
 
   // ---- sprite sheets played with CSS steps(): one row per animation, frames side by side ----
-  function play(node, row, frames, seconds, mode) {            // mode: "once" (hold the last frame) | "loop"
+  function play(node, [row, frames], seconds, mode) {          // mode: "once" (hold the last frame) | "loop"
     node.style.setProperty("--row", row);
     node.style.setProperty("--n", frames);
     node.style.setProperty("--n1", frames - 1);
@@ -80,87 +101,179 @@ export function mountScene(parent = document.body, opts = {}) {
     node.style.setProperty("--last", mode === "loop" ? 0 : frames - 1);
     node.classList.remove("once", "loop", "still");
     void node.offsetWidth;                                    // restart the CSS animation
+    delay(node);
     node.classList.add(reduce.matches ? "still" : mode);
   }
-  const finish = (node) => { node.classList.remove("once", "loop"); node.classList.add("still"); };
+  const hold = (node) => { node.classList.remove("once", "loop"); node.classList.add("still"); };
+  const slide = (from, seconds) => {                           // the machine rolls in from the left
+    machineWrap.style.setProperty("--from", `${from}px`);
+    machineWrap.style.setProperty("--slide", `${seconds}s`);
+    machineWrap.classList.remove("slide-in");
+    void machineWrap.offsetWidth;
+    delay(machineWrap);
+    machineWrap.classList.add("slide-in");
+  };
 
   let timers = [];
   let settleFn = null;
-  const later = (fn, seconds) => timers.push(setTimeout(fn, seconds * 1000));
+  let phaseWas = false;
+  let clock = 0;                                              // seconds already elapsed in the beat (only used when opts.seek is set: screenshots, tests)
+  const delay = (node) => { node.style.animationDelay = clock ? `-${clock}s` : ""; };
+  const later = (fn, seconds) => {
+    if (opts.seek != null) {                                  // seek mode: run what is due by now, started late by the right amount, and skip the rest
+      if (seconds <= opts.seek) { clock = opts.seek - seconds; fn(); clock = 0; }
+      return;
+    }
+    timers.push(setTimeout(fn, seconds * 1000));
+  };
   const cancel = () => {
     timers.forEach(clearTimeout);
     timers = [];
     if (settleFn) { removeEventListener("keydown", settleFn, true); removeEventListener("pointerdown", settleFn, true); settleFn = null; }
+    root.classList.remove("rumble", "dim", "dim-strong");
+    world.classList.remove("rumble");
   };
   const hideActors = () => {
     machine.hidden = find.hidden = sparkle.hidden = react.hidden = true;
-    react.classList.remove("float", "still");
+    machine.classList.remove("still", "once", "loop");
+    machineWrap.classList.remove("slide-in");
+    findWrap.classList.remove("carry", "carried");
+    react.classList.remove("float", "slam", "still");
   };
-
   const phase = (on) => document.body.classList.toggle("phase-feedback", on);   // after an answer the question shrinks (CSS), the dig site stays clear
 
+  // ---- idle: a calm loop, with a random micro-action (never a dig) every few seconds ----
+  let lastMicro = "";
+  function scheduleMicro() {
+    if (reduce.matches) return;
+    later(() => {
+      const names = Object.keys(MICRO).filter((n) => n !== lastMicro);
+      const pick = names[Math.floor(Math.random() * names.length)];
+      lastMicro = pick;
+      play(man, MAN[pick], MICRO[pick], "once");
+      later(() => { play(man, MAN.idle, 2.4, "loop"); scheduleMicro(); }, MICRO[pick]);
+    }, 4 + Math.random() * 5);
+  }
   function idle() {
+    const wasFeedback = phaseWas;
     cancel();
     hideActors();
     phase(false);
-    play(man, MAN_ROW.idle, 4, 1.6, "loop");
+    phaseWas = false;
+    if (wasFeedback && !document.body.classList.contains("no-hud")) sound.play("next");   // not on the end screen, where "finish" plays
+    play(man, MAN.idle, 2.4, "loop");
+    scheduleMicro();
   }
 
+  // a quiet start beat for the first question: he looks around and settles his hat (not a dig)
   function ready() {
     cancel();
     hideActors();
     phase(false);
-    if (reduce.matches) return play(man, MAN_ROW.idle, 4, 1.6, "loop");
-    play(man, MAN_ROW.ready, 4, T.ready, "once");
-    later(() => play(man, MAN_ROW.idle, 4, 1.6, "loop"), T.ready);
-    settleFn = () => idle();                                   // a key press or a tap ends the beat; the question is never blocked
+    phaseWas = false;
+    if (reduce.matches) return play(man, MAN.idle, 2.4, "loop");
+    play(man, MAN.ready, 1.2, "once");
+    later(() => { play(man, MAN.idle, 2.4, "loop"); scheduleMicro(); }, 1.2);
+    settleFn = () => { cancel(); play(man, MAN.idle, 2.4, "loop"); scheduleMicro(); };
     addEventListener("keydown", settleFn, { capture: true, once: true });
     addEventListener("pointerdown", settleFn, { capture: true, once: true });
   }
 
+  // ---- after an answer ----
+  // Every beat is a list of [seconds, action]; settle() runs the end state directly. Good answers get a build-up: rare about 1.9 s, very rare about 2.5 s.
   function dig(key, label) {
     cancel();
     hideActors();
     phase(true);
+    phaseWas = true;
     const k = DIG[key] ? key : "none";
     const d = DIG[k];
     const text = label ?? REACTIONS[k];
-    const machineRow = MACHINE_ROW[d.tool];
-    const showFind = () => { find.hidden = false; play(find, FIND_ROW[d.find], 6, T.find, "once"); };
-    const showReaction = () => {
-      play(man, MAN_ROW[`rx_${k}`], 6, T.rx, "once");
-      if (SPARKLE.has(k)) { sparkle.hidden = false; play(sparkle, 0, 6, T.sparkle, "once"); }
-    };
+    const big = k === "rare" || k === "veryRare";
+    const findRow = FIND_ROW[d.find];
     const showLabel = () => {
       react.textContent = text;
       react.dataset.key = k;
       react.hidden = false;
-      react.classList.remove("float", "still");
+      react.classList.remove("float", "slam", "still");
       void react.offsetWidth;
-      react.classList.add(reduce.matches ? "still" : "float");
+      delay(react);
+      react.classList.add(reduce.matches ? "still" : big ? "slam" : "float");
     };
-    play(man, MAN_ROW[d.tool], 6, T.dig, "once");
-    if (machineRow !== undefined) { machine.hidden = false; play(machine, machineRow, 6, T.dig, "once"); }
-    if (reduce.matches) {                                      // no motion: everything at its end state, the reaction text still appears
-      showFind(); showReaction(); showLabel();
-      return;
-    }
-    later(showFind, T.findAt);
-    later(showReaction, T.rxAt);
-    later(showLabel, T.labelAt);
-    settleFn = () => {                                         // Enter, a key or a tap: jump to the end state at once
+    const revealFind = (seconds) => { find.hidden = false; play(find, [findRow, 6], seconds, "once"); };
+    const carryFind = () => { findWrap.classList.remove("carry"); void findWrap.offsetWidth; delay(findWrap); findWrap.classList.add(reduce.matches ? "carried" : "carry"); };
+    const sparkles = () => { sparkle.hidden = false; play(sparkle, [0, 6], 0.5, "once"); };
+    const vignetteOn = (strong) => root.classList.add("dim", ...(strong ? ["dim-strong"] : []));
+    const vignetteOff = () => root.classList.remove("dim", "dim-strong");
+    const rumble = (on) => world.classList.toggle("rumble", on);
+
+    // the end state of every beat (also what reduced motion shows, and what a key press or tap jumps to)
+    const finalState = () => {
       cancel();
-      showFind(); showReaction(); showLabel();
-      for (const n of [man, machine, find, sparkle]) finish(n);
+      vignetteOff();
+      rumble(false);
+      if (d.tool === "digger") { machine.hidden = false; machineWrap.classList.remove("slide-in"); play(machine, MACHINE.digger_dig, 0.5, "once"); hold(machine); }
+      if (d.tool === "truck") { machine.hidden = false; machineWrap.classList.remove("slide-in"); play(machine, MACHINE.truck_tip, 0.6, "once"); hold(machine); }
+      find.hidden = false;
+      play(find, [findRow, 6], 0.3, "once");
+      hold(find);
+      findWrap.classList.remove("carry"); findWrap.classList.toggle("carried", big);
+      play(man, MAN[`rx_${k}`], 0.5, "once");
+      hold(man);
       sparkle.hidden = true;
-      react.classList.remove("float");
+      showLabel();
+      react.classList.remove("float", "slam");
       react.classList.add("still");
     };
-    addEventListener("keydown", settleFn, { capture: true, once: true });
-    addEventListener("pointerdown", settleFn, { capture: true, once: true });
+
+    if (reduce.matches) return finalState();
+    if (opts.seek != null) { root.classList.add("seek-freeze"); clock = opts.seek; }   // seek mode: freeze the scene at that moment of the beat
+    else {
+      settleFn = () => finalState();                            // a key press, Enter or a tap: end state at once
+      addEventListener("keydown", settleFn, { capture: true, once: true });
+      addEventListener("pointerdown", settleFn, { capture: true, once: true });
+    }
+
+    if (k === "rare") {                                         // about 1.9 s
+      vignetteOn(false);
+      sound.play("rumble");
+      machine.hidden = false;
+      slide(-90, 0.35);
+      play(machine, MACHINE.digger_drive, 0.4, "loop");
+      play(man, MAN.watch_digger, 0.8, "loop");
+      later(() => { play(machine, MACHINE.digger_dig, 0.45, "once"); rumble(true); sound.play("dig-digger"); }, 0.35);
+      later(() => { rumble(false); play(man, MAN.lean_crown, 0.6, "once"); }, 0.8);
+      later(() => { revealFind(0.35); sound.play("reveal-rare"); }, 1.0);
+      later(carryFind, 1.3);
+      later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); vignetteOff(); }, 1.4);
+    } else if (k === "veryRare") {                              // about 2.5 s
+      vignetteOn(true);                                         // a beat of silence under the vignette, then the truck
+      later(() => { machine.hidden = false; slide(-110, 0.45); play(machine, MACHINE.truck_drive, 0.45, "loop"); play(man, MAN.watch_truck, 0.8, "loop"); sound.play("rumble"); }, 0.3);
+      later(() => { play(machine, MACHINE.truck_tip, 0.65, "once"); rumble(true); sound.play("dig-truck"); }, 0.75);
+      later(() => { rumble(false); play(man, MAN.lift_statue, 0.7, "once"); }, 1.3);
+      later(() => { revealFind(0.45); sound.play("reveal-veryRare"); }, 1.5);
+      later(carryFind, 1.95);
+      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); vignetteOff(); }, 2.0);
+    } else {                                                    // common, uncommon, none: about 1.1 s
+      sound.play(`dig-${d.tool}`);
+      play(man, MAN[d.tool], 0.5, "once");
+      later(() => { revealFind(0.3); sound.play(`reveal-${k}`); }, 0.3);
+      later(() => { play(man, MAN[`rx_${k}`], 0.5, "once"); showLabel(); }, 0.55);
+    }
+    clock = 0;
   }
 
-  // ---- the top bar: progress squares, score chip (and an optional chip), timer ----
+  // ---- the top bar: sound button, progress squares, score chip (and an optional chip), the timer ----
+  const soundBtn = el("button", "hud-sound", { type: "button" });
+  const paintSound = () => {
+    soundBtn.replaceChildren(speaker(sound.muted));
+    soundBtn.setAttribute("aria-pressed", String(!sound.muted));
+    soundBtn.setAttribute("aria-label", soundBtn.dataset.label || "Sound");
+    soundBtn.classList.toggle("is-muted", sound.muted);
+  };
+  soundBtn.addEventListener("click", () => { sound.toggle(); paintSound(); });
+  sound.onChange(paintSound);
+
   function hud(info) {
     if (!info) {
       hudEl.hidden = true;
@@ -169,9 +282,13 @@ export function mountScene(parent = document.body, opts = {}) {
     }
     hudEl.hidden = false;
     document.body.classList.remove("no-hud");
+    soundBtn.dataset.label = info.soundLabel ?? "Sound";
+    paintSound();
     const row = el("div", "hud-row");
+    const left = el("div", "hud-left");
     const chip = el("p", "hud-chip", { textContent: info.chip ?? "" });
     chip.hidden = !info.chip;
+    left.append(soundBtn, chip);
     const q = el("p", "hud-q");
     q.append(el("span", "sr", { textContent: info.counter ?? "" }));
     if (info.progress) {
@@ -182,7 +299,7 @@ export function mountScene(parent = document.body, opts = {}) {
     } else {
       q.append(el("span", "txt", { textContent: info.counter ?? "" }));
     }
-    row.append(chip, q, el("p", "hud-score", { textContent: info.score ?? "" }));
+    row.append(left, q, el("p", "hud-score", { textContent: info.score ?? "" }));
     hudEl.replaceChildren(row, ...(info.timer ? [info.timer] : []));
     fit();
   }
@@ -219,7 +336,7 @@ export function mountScene(parent = document.body, opts = {}) {
   hudEl.hidden = true;
   idle();
   fit();
-  return { hud, idle, ready, dig, reset: idle, fit };
+  return { hud, idle, ready, dig, reset: idle, fit, sound };
 }
 
 // items: [{ find: "coin", label: "Gold coin" }, ...]  -> <ul class="museum">, one case per find (end screen, also the share image)

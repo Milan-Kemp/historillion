@@ -107,3 +107,20 @@ test("suggest: close miss gives a hint, far miss and ties do not", async () => {
   assert.equal(suggest("banana", q), null);
   assert.equal(suggest("", q), null);
 });
+
+test("score distribution: sums to 1, percentile grows with the score", async () => {
+  const { scoreDistribution, percentile, bins } = await import("../js/distribution.js");
+  const dist = scoreDistribution(day);
+  assert.ok(Math.abs([...dist.values()].reduce((a, b) => a + b, 0) - 1) < 1e-9);
+  assert.ok(percentile(dist, 0) < percentile(dist, 200));
+  assert.ok(percentile(dist, 200) < percentile(dist, 700));
+  assert.ok(Math.abs(bins(dist).reduce((s, b) => s + b.p, 0) - 1) < 1e-9);
+});
+
+test("bins: `to` is exclusive and every integer score lands in exactly one bin", async () => {
+  const { scoreDistribution, bins } = await import("../js/distribution.js");
+  const b = bins(scoreDistribution(day));
+  for (const score of [0, 24, 25, 49, 349, 699, 700]) {
+    assert.equal(b.filter((x) => score >= x.from && score < x.to).length, 1, `score ${score}`);
+  }
+});

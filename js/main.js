@@ -1,6 +1,7 @@
 import { t } from "./strings/en.js";
 import { match, suggest } from "./matching.js";
 import { points, rarityKey } from "./scoring.js";
+import { scoreDistribution, bins, percentile } from "./distribution.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
@@ -10,6 +11,8 @@ const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
 const scene = kit.mountScene?.();
+// The new end screen (curve, ranks, finds list) only exists in the 2d kit.
+const endKit = scene ? await import(`../${KIT}/end-screen.js`) : null;
 
 const SECONDS = 20;
 const app = document.getElementById("app");
@@ -24,7 +27,8 @@ function el(tag, props = {}, ...kids) {
 }
 function show(...nodes) {
   app.replaceChildren(...nodes);
-  (app.querySelector("input, button") ?? app).focus();
+  app.scrollTop = 0; // a long screen (the end screen) must open at its top, not at the focused button below
+  (app.querySelector("input, button") ?? app).focus({ preventScroll: true });
 }
 
 // UTC, so every player worldwide gets the same day at the same moment.
@@ -68,8 +72,9 @@ function ask(day, i, results) {
   const msg = el("p", { className: "msg", role: "status" }); // live region: screen readers announce the hint
   const total = results.reduce((s, r) => s + r.pts, 0);
   if (scene) {
-    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), timer });
-    scene.ready();
+    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), timer, soundLabel: t.soundLabel });
+    // The "picks up his shovel" beat looks like digging for no reason, so only the first question gets it.
+    if (i === 0) scene.ready(); else scene.idle();
     show(el("h2", { textContent: question.prompt }), form, msg);
   } else {
     show(
@@ -83,6 +88,7 @@ function ask(day, i, results) {
   input.focus();
 
   const deadline = performance.now() + SECONDS * 1000;
+  let lastTick = null;
   let done = false;
   let hint = null; // the current "did you mean" suggestion
   let last = null; // last wrong try, shown on the feedback screen if time runs out
@@ -95,6 +101,7 @@ function ask(day, i, results) {
   // A real answer ends the question. A wrong or unknown one only shows a hint: you can keep trying.
   const submit = () => {
     if (done) return;
+    scene?.sound.play("submit");
     const typed = input.value;
     if (!typed.trim()) {
       // Enter on an empty field after a "did you mean" hint fills in the suggestion; the next Enter submits it.
@@ -112,6 +119,7 @@ function ask(day, i, results) {
       const yes = el("button", { type: "button", textContent: `→ ${suggestion.canonical}`, onclick: () => { input.value = suggestion.canonical; submit(); } });
       msg.replaceChildren(`${t.didYouMean} `, yes, ` ${t.orEnter}`);
     } else msg.textContent = g.rejected ? g.text : t.notRecognised;
+    scene?.sound.play(hint ? "hint" : "wrong");
     input.value = "";
     input.focus();
   };
@@ -127,6 +135,7 @@ function ask(day, i, results) {
     const left = Math.ceil((deadline - performance.now()) / 1000);
     timer.textContent = t.seconds(Math.max(left, 0));
     timer.classList.toggle("low", left <= SECONDS / 4);
+    if (left <= 5 && left > 0 && left !== lastTick) { lastTick = left; scene?.sound.play("tick"); }
     if (left <= 0) timeUp();
   }, 100);
   form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
@@ -137,7 +146,7 @@ function feedback(day, i, results) {
   const last = i === day.questions.length - 1;
   const total = results.reduce((s, x) => s + x.pts, 0);
   if (scene) {
-    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total) });
+    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), soundLabel: t.soundLabel });
     scene.dig(r.key, t.reaction[r.key]);
   }
   show(
@@ -150,14 +159,29 @@ function feedback(day, i, results) {
     el("p", { className: "points", textContent: t.points(r.pts) }),
     el("p", { textContent: r.rarity + (r.share ? `. ${t.shareOf(Math.round(r.share * 100))}` : "") }),
     el("p", { textContent: r.text }),
-    el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(results) : ask(day, i + 1, results)) }),
+    el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(day, results) : ask(day, i + 1, results)) }),
   );
 }
 
-function end(results) {
+function end(day, results) {
   scene?.hud(null);
   scene?.reset();
+  scene?.sound.play("finish");
   const total = results.reduce((s, r) => s + r.pts, 0);
+  if (endKit) {
+    // The curve is an estimate from predicted answer shares (no real players yet); endCurve prints that too.
+    const dist = scoreDistribution(day);
+    show(
+      el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), String(total)),
+      el("p", { className: "sub", textContent: t.totalLabel }),
+      endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve }),
+      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle }),
+      endKit.findsList({ results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })), title: t.findsTitle, pointsLabel: t.pointsShort }),
+      endKit.nextDig({ label: t.nextDig }),
+      el("button", { textContent: t.playAgain, onclick: () => location.reload() }),
+    );
+    return;
+  }
   const rows = results.map((r) => el("tr", {},
     el("td", { textContent: r.prompt, "data-label": t.questionCol }),
     el("td", { textContent: r.typed.trim() || "-", "data-label": t.yourAnswer }),

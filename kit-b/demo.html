@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Historillion, 2D kit: fullscreen demo v2</title>
+  <title>Historillion, 2D kit: fullscreen demo v3</title>
   <link rel="icon" href="brand/favicon.png">
   <link rel="stylesheet" href="theme.css">
 </head>
@@ -11,34 +11,36 @@
   <main id="app"></main>
   <script type="module">
     // A tiny fake game that uses the kit exactly the way main.js should (strings here stand in for js/strings/en.js).
-    // ?screen=intro|ask|common|uncommon|rare|veryRare|none|end jumps to a state; &still=1 shows final frames at once; &hint=1 shows the "did you mean" hint;
-    // &nofocus=1 does not focus the input.
+    // ?screen=intro|ask|common|uncommon|rare|veryRare|none|end jumps to a state; &still=1 shows final frames at once; &hint=1 shows the "did you mean" line;
+    // &nofocus=1 does not focus the input. Click the buttons to play through it with sound (the first tap unlocks audio).
     import { mountScene, museum, DIG, REACTIONS } from "./dig-scene.js";
+    import { endCurve, rankList, findsList, nextDig, RANKS } from "./end-screen.js";
     const app = document.getElementById("app");
     const q = new URLSearchParams(location.search);
-    const scene = mountScene(document.body, { still: q.has("still") });
+    const scene = mountScene(document.body, { still: q.has("still"), seek: q.has("at") ? Number(q.get("at")) : undefined });   // &at=1.15 freezes a dig beat at 1.15 s
     const el = (tag, props = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(props)) (k in n ? (n[k] = v) : n.setAttribute(k, v)); n.append(...kids); return n; };
     const show = (...nodes) => app.replaceChildren(...nodes);
     const names = { shard: "Pottery shard", coin: "Coin", crown: "Crown", statue: "Statue", rock: "Just a rock" };
     const sentences = { common: "You dug up a pottery shard with a brush.", uncommon: "You dug up a coin with a pickaxe.", rare: "You dug up a crown with a small excavator.", veryRare: "You dug up a statue with a dump truck.", none: "You dug up just a rock with a spoon." };
     const rarity = { common: "Common answer. 41% of players gave it.", uncommon: "Uncommon answer. 17% of players gave it.", rare: "Rare answer. 6% of players gave it.", veryRare: "Very rare answer. Under 1% of players gave it.", none: "No valid answer." };
+    const rarityShort = { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "No answer" };
     const points = { common: 8, uncommon: 24, rare: 62, veryRare: 94, none: 0 };
     const QUESTION = "Which Roman emperor is said to have played music while Rome burned?";
     let total = 0;
-    const hud = (extra = {}) => scene.hud({ progress: { current: 3, total: 7 }, counter: "Question 3 of 7", score: `Score ${total}`, ...extra });
+    const hud = (extra = {}) => scene.hud({ progress: { current: 3, total: 7 }, counter: "Question 3 of 7", score: `Score ${total}`, soundLabel: "Sound", ...extra });
 
     function intro() {
       scene.hud(null);
-      show(el("h1", { textContent: "Historillion" }), el("p", { textContent: "A daily history game. Seven questions, twenty seconds each." }), el("p", { textContent: "The rarer your answer, the more you dig up." }), el("button", { textContent: "Start", onclick: ask }));
+      show(el("h1", { textContent: "Historillion" }), el("p", { textContent: "A daily history game. Seven questions, twenty seconds each." }), el("p", { textContent: "The rarer your answer, the more you dig up." }), el("button", { textContent: "Start", onclick: () => { total = 0; ask(true); } }));
     }
-    function ask() {
+    function ask(first = false) {
       const timer = el("p", { className: "timer", role: "timer", textContent: "20 s" });
       const input = el("input", { type: "text", placeholder: "Type your answer", "aria-label": QUESTION });
       const msg = el("p", { className: "msg", role: "status" });
       const form = el("form", {}, input, el("button", { type: "submit", textContent: "Submit" }));
-      form.onsubmit = (e) => { e.preventDefault(); feedback("rare"); };
+      form.onsubmit = (e) => { e.preventDefault(); scene.sound.play("submit"); feedback(["common", "uncommon", "rare", "veryRare", "none"][Math.floor(Math.random() * 5)]); };
       hud({ timer });
-      scene.ready();
+      first ? scene.ready() : scene.idle();                  // ready() only for question 1; idle() for the rest
       show(el("h2", { textContent: QUESTION }), form, msg);
       if (q.get("hint")) msg.replaceChildren("Did you mean ", el("button", { type: "button", textContent: "→ Nero" }));
       if (!q.get("nofocus")) input.focus();
@@ -49,16 +51,34 @@
       scene.dig(key, REACTIONS[key]);
       show(el("h2", { textContent: QUESTION }), el("p", { textContent: "Your answer: nero" }), el("p", { className: "dig", textContent: sentences[key] }),
         el("p", { className: "points", textContent: key === "none" ? "0 points" : `+${points[key]} points` }), el("p", { textContent: rarity[key] }),
-        el("p", { textContent: "Nero was said to have played the lyre, but the fiddle did not exist yet." }), el("button", { textContent: "Next", onclick: end }));
+        el("p", { textContent: "Nero was said to have played the lyre, but the fiddle did not exist yet." }), el("button", { textContent: "Next", onclick: () => (q.get("loop") ? ask() : end()) }));
+    }
+    // a fake score distribution: a bell over 0..700 in bins of 25 (in the game these come from js/distribution.js: scoreDistribution, bins, percentile)
+    function fakeBins() {
+      const out = [];
+      for (let from = 0; from < 700; from += 25) { const c = from + 12.5; out.push({ from, to: from + 25, p: Math.exp(-((c - 300) ** 2) / (2 * 120 ** 2)) / 120 }); }
+      const sum = out.reduce((s, b) => s + b.p, 0);
+      return out.map((b) => ({ ...b, p: b.p / sum }));
     }
     function end() {
       scene.hud(null);
       scene.reset();
+      scene.sound.play("finish");
       const keys = ["common", "uncommon", "rare", "veryRare", "none", "rare", "common"];
-      show(el("h1", { textContent: `Total: ${total}` }), museum(keys.map((k) => ({ find: DIG[k].find, label: names[DIG[k].find] }))), el("button", { textContent: "Play again", onclick: intro }));
+      const bins = fakeBins();
+      const score = q.get("score") ? Number(q.get("score")) : (total || 318);
+      const pctl = bins.filter((b) => b.to <= score).reduce((s, b) => s + b.p, 0);
+      const prompts = ["Name a sport where you're allowed to kick the ball", "Name a country that has an A as its second letter", "Name a city on an island (towns count too)", "Name an album by an artist with more than 1 million monthly listeners", "Name an animal with webbed feet", "Name a video game company", "Name a form medicine comes in (like a pill)"];
+      const answers = ["Gaelic football", "Palau", "Reykjavik", "Late Registration", "ge", "Psyonix", "Powder"];
+      show(el("h1", { className: "total" }, el("span", { className: "sr", textContent: "Total: " }), String(score)), el("p", { className: "sub", textContent: "points" }),
+        endCurve({ bins, total: score, percentile: pctl }),
+        rankList({ total: score, ranks: RANKS, title: "Your rank" }),
+        findsList({ results: keys.map((k, i) => ({ prompt: prompts[i], typed: answers[i], rarity: rarityShort[k], find: DIG[k].find, findLabel: names[DIG[k].find], pts: points[k] })), title: "Your finds", pointsLabel: "pts" }),
+        nextDig({ label: "Next dig in" }),
+        el("button", { textContent: "Play again", onclick: intro }));
     }
     const s = q.get("screen") ?? "intro";
-    if (s === "intro") intro(); else if (s === "ask") ask(); else if (s === "end") end(); else { ask(); feedback(s); }
+    if (s === "intro") intro(); else if (s === "ask") ask(true); else if (s === "end") end(); else { ask(); feedback(s); }
   </script>
 </body>
 </html>
