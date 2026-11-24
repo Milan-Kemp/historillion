@@ -1,5 +1,7 @@
 # Historillion style kit: 2D
 
+> **Fullscreen version: read `FULLSCREEN.md` first.** `theme.css`, `dig-scene.js` and `demo.html` are now the fullscreen scene with the animated archaeologist. This file describes the palette, type, shapes and sprite rules (still valid) and the earlier small-card layout, which is kept as `theme-card.css`, `dig-scene-card.js` and `styleguide.html`.
+
 The newer channel look (battle films 005, 007, 009), after SMKS Studios' "Tribe of the Accord": flat, bright, top-down, no black outlines, soft darker-same-hue shadows, chunky wood plates with a cream double border. Read this file first, then open `styleguide.html` (serve it over http) to see every screen styled.
 
 ## What is in this folder

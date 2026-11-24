@@ -1,0 +1,141 @@
+{
+ "version": 2,
+ "picture": {
+  "width": 640,
+  "note": "all layers share picture coordinates; the picture centre is the screen centre; stage origin = picture (228,146); horizon y=118",
+  "layers": {
+   "sky.png": [
+    640,
+    136
+   ],
+   "twinkle.png": [
+    640,
+    70
+   ],
+   "clouds.png": [
+    1280,
+    100,
+    "tiles sideways"
+   ],
+   "far.png": [
+    640,
+    136
+   ],
+   "ground.png": [
+    640,
+    348,
+    "drawn from y=112"
+   ],
+   "mid.png": [
+    640,
+    150
+   ],
+   "grass.png": [
+    520,
+    120,
+    "2 frames of 260"
+   ],
+   "bird.png": [
+    54,
+    12,
+    "3 frames of 18"
+   ]
+  }
+ },
+ "stage": {
+  "width": 200,
+  "height": 120,
+  "pit": {
+   "x": [
+    90,
+    150
+   ],
+   "y": [
+    28,
+    88
+   ]
+  },
+  "man_foot": [
+   54,
+   92
+  ],
+  "find_foot": [
+   120,
+   74
+  ],
+  "screen_centre_x": 92
+ },
+ "man": {
+  "file": "man.png",
+  "frame": [
+   128,
+   80
+  ],
+  "columns": 6,
+  "rows": [
+   "idle(4)",
+   "ready(4)",
+   "brush",
+   "pickaxe",
+   "digger",
+   "truck",
+   "spoon",
+   "rx_none",
+   "rx_common",
+   "rx_uncommon",
+   "rx_rare",
+   "rx_veryRare"
+  ],
+  "foot_in_frame": [
+   52,
+   72
+  ],
+  "origin_in_stage": [
+   2,
+   20
+  ]
+ },
+ "machine": {
+  "file": "machine.png",
+  "frame": [
+   144,
+   80
+  ],
+  "rows": [
+   "digger",
+   "truck"
+  ],
+  "frames": 6,
+  "origin_in_stage": [
+   2,
+   20
+  ]
+ },
+ "reveal": {
+  "file": "reveal.png",
+  "frame": [
+   56,
+   56
+  ],
+  "frames": 6,
+  "rows": [
+   "shard",
+   "coin",
+   "crown",
+   "statue",
+   "rock"
+  ],
+  "origin_in_stage": [
+   92,
+   22
+  ]
+ },
+ "sparkle": {
+  "file": "sparkle.png",
+  "frame": [
+   56,
+   56
+  ],
+  "frames": 6
+ }
+}

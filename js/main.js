@@ -6,7 +6,10 @@ import { points, rarityKey } from "./scoring.js";
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
-const { digScene, museum, DIG } = await import(`../${KIT}/dig-scene.js`);
+const kit = await import(`../${KIT}/dig-scene.js`);
+const { museum, DIG } = kit;
+// Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
+const scene = kit.mountScene?.();
 
 const SECONDS = 20;
 const app = document.getElementById("app");
@@ -46,6 +49,8 @@ function grade(input, question) {
 }
 
 function intro(day) {
+  scene?.hud(null);
+  scene?.idle();
   show(
     el("h1", { textContent: t.title }),
     el("p", { textContent: t.tagline }),
@@ -61,17 +66,25 @@ function ask(day, i, results) {
   input.setAttribute("autocorrect", "off"); // a property in Chrome (boolean), so it must be set as attribute
   const form = el("form", {}, input, el("button", { type: "submit", textContent: t.submit }));
   const msg = el("p", { className: "msg", role: "status" }); // live region: screen readers announce the hint
-  show(
-    el("p", { textContent: t.question(i + 1, day.questions.length) }),
-    digScene(null, null),
-    el("h2", { textContent: question.prompt }),
-    timer, form, msg,
-  );
+  const total = results.reduce((s, r) => s + r.pts, 0);
+  if (scene) {
+    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), timer });
+    scene.ready();
+    show(el("h2", { textContent: question.prompt }), form, msg);
+  } else {
+    show(
+      el("p", { textContent: t.question(i + 1, day.questions.length) }),
+      kit.digScene(null, null),
+      el("h2", { textContent: question.prompt }),
+      timer, form, msg,
+    );
+  }
   timer.style.setProperty("--secs", `${SECONDS}s`);
   input.focus();
 
   const deadline = performance.now() + SECONDS * 1000;
   let done = false;
+  let hint = null; // the current "did you mean" suggestion
   let last = null; // last wrong try, shown on the feedback screen if time runs out
   const finish = (typed, g) => {
     done = true;
@@ -83,14 +96,21 @@ function ask(day, i, results) {
   const submit = () => {
     if (done) return;
     const typed = input.value;
-    if (!typed.trim()) { msg.textContent = t.typeSomething; return; }
+    if (!typed.trim()) {
+      // Enter on an empty field after a "did you mean" hint fills in the suggestion; the next Enter submits it.
+      if (hint) { input.value = hint.canonical; hint = null; msg.textContent = t.pressEnter; return; }
+      msg.textContent = t.typeSomething;
+      return;
+    }
+    hint = null;
     const g = grade(typed, question);
     if (g.name) return finish(typed, g);
     last = { typed, g };
-    const hint = g.rejected ? null : suggest(typed, question);
+    hint = g.rejected ? null : suggest(typed, question);
     if (hint) {
-      const yes = el("button", { type: "button", textContent: `→ ${hint.canonical}`, onclick: () => { input.value = hint.canonical; submit(); } });
-      msg.replaceChildren(`${t.didYouMean} `, yes);
+      const suggestion = hint;
+      const yes = el("button", { type: "button", textContent: `→ ${suggestion.canonical}`, onclick: () => { input.value = suggestion.canonical; submit(); } });
+      msg.replaceChildren(`${t.didYouMean} `, yes, ` ${t.orEnter}`);
     } else msg.textContent = g.rejected ? g.text : t.notRecognised;
     input.value = "";
     input.focus();
@@ -115,10 +135,15 @@ function ask(day, i, results) {
 function feedback(day, i, results) {
   const r = results[i];
   const last = i === day.questions.length - 1;
+  const total = results.reduce((s, x) => s + x.pts, 0);
+  if (scene) {
+    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total) });
+    scene.dig(r.key, t.reaction[r.key]);
+  }
   show(
-    el("p", { textContent: t.question(i + 1, day.questions.length) }),
+    ...(scene ? [] : [el("p", { textContent: t.question(i + 1, day.questions.length) })]),
     el("h2", { textContent: r.prompt }),
-    digScene(DIG[r.key].tool, DIG[r.key].find),
+    ...(scene ? [] : [kit.digScene(DIG[r.key].tool, DIG[r.key].find)]),
     el("p", { textContent: `${t.yourAnswer}: ${r.typed.trim() || "-"}` }),
     ...(r.name ? [el("p", { textContent: t.matchedAs(r.name) })] : []),
     el("p", { className: "dig", textContent: t.youDug(r.dig.tool, r.dig.find) }),
@@ -130,6 +155,8 @@ function feedback(day, i, results) {
 }
 
 function end(results) {
+  scene?.hud(null);
+  scene?.reset();
   const total = results.reduce((s, r) => s + r.pts, 0);
   const rows = results.map((r) => el("tr", {},
     el("td", { textContent: r.prompt, "data-label": t.questionCol }),

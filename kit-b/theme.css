@@ -1,8 +1,9 @@
-/* Historillion, 2D kit. Drop-in replacement for css/style.css.
-   Look: the newer flat, bright, top-down style (after SMKS "Tribe of the Accord"): a meadow-green page, ONE dark wood plate with a cream
-   double border and notched corners holding everything (like the HUD plates of the battle films), gold studs, flat blocks, a darker strip
-   under every part instead of black outlines, segmented bars. One art pixel = --px (3 px).
-   Pixel font only for short UI words; long text stays in the readable body font. Contrast measured (see STYLE.md). */
+/* Historillion, 2D kit, FULLSCREEN v2. Replaces css/style.css (v1 of the fullscreen layout is kept as theme-v1.css, the first card layout as theme-card.css).
+   The scene is the page: a layered dusk scene (#scene) with an animated archaeologist, a thin top bar (#hud: progress squares, score, timer) and the
+   game panel (main#app) in the upper middle, over the sky; the dig site is below it. Look: dark wood plates with a cream double border and notched corners,
+   gold accent, flat blocks, no black outlines. One art pixel = --px (3 px) for the UI; the scene zooms in whole steps (--s) set by dig-scene.js.
+   Pixel font for short UI words and the question; long text stays in the readable body font. Text sits on plates, never on the artwork
+   (the floating reaction is the one exception: it is decorative, has a 1 px dark outline, and its words also appear in the panel). */
 
 @font-face {
   font-family: "Sprites Pixel";
@@ -11,57 +12,124 @@
 }
 
 :root {
-  --bg: #1e423a;          /* LEAF_1   page (the dark meadow behind the plate) */
-  --bg-lit: #2e6240;      /* LEAF_2   page texture */
-  --fill: #2c1822;        /* WOOD_0   plate */
-  --fill-lit: #482626;    /* WOOD_1   plate top edge, table rows */
+  --sky: #1e1846;         /* NIGHT_2  behind the artwork */
+  --fill: #2c1822;        /* WOOD_0   plates */
+  --fill-lit: #482626;    /* WOOD_1   plate top edge, hint panel */
   --line: #683a2c;        /* WOOD_2   plate inner line */
   --cream: #faf6eb;       /* PAPER_5  plate border, text (15:1 on plate) */
   --cream-dark: #dcc89c;  /* PAPER_3  muted text (10:1 on plate) */
-  --gold: #ffd038;        /* GOLD_3   accent, studs, button (11:1 on plate) */
+  --gold: #ffd038;        /* GOLD_3   accent, button (11:1 on plate) */
   --gold-lit: #ffee96;    /* GOLD_4 */
   --gold-dark: #8c541c;   /* GOLD_1   strip under the button */
   --field: #faf6eb;       /* PAPER_5  input background, text is --fill (15:1) */
-  --danger: #faaa8c;      /* BRICK_5  9:1 hint text */
+  --danger: #faaa8c;      /* BRICK_5  hint text */
   --urgent: #ec6e5a;      /* BRICK_4  5.5:1 timer in the last seconds */
-  --ok: #bace78;          /* LEAF_5 */
+  --ok: #bace78;          /* LEAF_5   9.7:1 timer */
   --focus: #ffee96;       /* GOLD_4 */
+  --ink: #14080e;
   --font-pixel: "Sprites Pixel", ui-monospace, "Courier New", monospace;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --px: 3px;
-  --secs: 20s;            /* length of one question, for the timer bar (set from JS if SECONDS changes) */
-  /* the plate corner: a 3 px notch, as in the film HUD */
+  --secs: 20s;            /* length of one question (timer bar); set from JS if SECONDS changes */
+  --kb: 0px;              /* height of the on-screen keyboard, set by dig-scene.js */
+  --ptop: 104px;          /* top of the panel = bottom of the top bar, set by dig-scene.js */
   --notch: polygon(var(--px) 0, calc(100% - var(--px)) 0, 100% var(--px), 100% calc(100% - var(--px)), calc(100% - var(--px)) 100%, var(--px) 100%, 0 calc(100% - var(--px)), 0 var(--px));
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0; min-height: 100vh; padding: 16px;
-  background-color: var(--bg);
-  background-image: radial-gradient(var(--bg-lit) 1px, transparent 1.5px);   /* sparse grass tufts */
-  background-size: 18px 18px;
-  color: var(--cream); font: 16px/1.55 var(--font-body);
-}
+html { -webkit-text-size-adjust: 100%; height: 100%; }
+body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color: var(--cream); font: 16px/1.55 var(--font-body); }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ================= the scene (artwork, decorative) =================
+   Picture coordinates: 640 wide, the picture's centre is the screen centre. The stage (archaeologist, machine, finds) has its origin at picture (228, 146). */
+#scene { position: fixed; inset: 0; overflow: hidden; background: var(--sky); pointer-events: none; --oy: calc((var(--sy, 40) - 146) * 1px); }
+#scene .world { position: absolute; left: var(--ox, 50%); top: 0; width: 0; height: 0; transform: scale(var(--s, 3)); transform-origin: 0 0; }
+#scene img, #scene .layer, #scene .sprite, #scene .grass, #scene .bird { image-rendering: pixelated; max-width: none; }
+#scene .layer { position: absolute; left: -320px; display: block; }
+#scene .sky { top: var(--oy); width: 640px; height: 136px; }
+#scene .twinkle { top: var(--oy); width: 640px; height: 70px; animation: twinkle 3.2s steps(1) infinite; }
+@keyframes twinkle { 0% { opacity: 1; } 50% { opacity: 0.15; } }
+#scene .clouds { top: var(--oy); width: 640px; height: 100px; background: url("scene/clouds.png") repeat-x 0 0 / 1280px 100px; animation: drift 420s steps(1280) infinite; }
+@keyframes drift { to { background-position-x: -1280px; } }
+#scene .far { top: var(--oy); width: 640px; height: 136px; }
+#scene .ground { top: calc(var(--oy) + 112px); width: 640px; height: 348px; }
+#scene .mid { top: var(--oy); width: 640px; height: 150px; }
+#scene .grass { position: absolute; left: -104px; top: calc(var(--sy, 40) * 1px - 8px); width: 260px; height: 120px; background: url("scene/grass.png") no-repeat 0 0 / 520px 120px; animation: sway 1.6s steps(1) infinite; }
+@keyframes sway { 50% { background-position-x: -260px; } }
+#scene .bird { position: absolute; left: -330px; top: calc(var(--oy) + 34px); width: 18px; height: 12px; background: url("scene/bird.png") no-repeat 0 0 / 54px 12px;
+  animation: flap 0.36s steps(3) infinite, fly 46s linear 6s infinite; }
+@keyframes flap { to { background-position-x: -54px; } }
+@keyframes fly { from { transform: translate(0, 0); } 50% { transform: translate(330px, -6px); } to { transform: translate(680px, 2px); } }
+
+/* the stage: its origin is at stage (0, 0); the screen centre is at stage x = 92 */
+#scene .stage { position: absolute; left: -92px; top: calc(var(--sy, 40) * 1px); width: 200px; height: 120px; }
+#scene .sprite { position: absolute; background-repeat: no-repeat; background-position: calc(var(--f, 0) * -1px) 0; }
+#scene .sprite[hidden] { display: none; }
+#scene .sprite.once { animation: sp-once var(--dur) steps(var(--n1)) forwards; }
+#scene .sprite.loop { animation: sp-loop var(--dur) steps(var(--n)) infinite; }
+@keyframes sp-once { to { background-position-x: calc(var(--n1) * var(--fw) * -1); } }
+@keyframes sp-loop { to { background-position-x: calc(var(--n) * var(--fw) * -1); } }
+#scene .sprite.still { animation: none; background-position-x: calc(var(--last, 0) * var(--fw) * -1); }
+#scene .man { --fw: 128px; left: 2px; top: 20px; width: 128px; height: 80px; background-image: url("scene/man.png"); background-size: 768px 960px;
+  background-position-y: calc(var(--row, 0) * -80px); }
+#scene .machine { --fw: 144px; left: 2px; top: 20px; width: 144px; height: 80px; background-image: url("scene/machine.png"); background-size: 864px 160px;
+  background-position-y: calc(var(--row, 0) * -80px); }
+#scene .find { --fw: 56px; left: 92px; top: 22px; width: 56px; height: 56px; background-image: url("scene/reveal.png"); background-size: 336px 280px;
+  background-position-y: calc(var(--row, 0) * -56px); }
+#scene .sparkle { --fw: 56px; left: 92px; top: 22px; width: 56px; height: 56px; background-image: url("scene/sparkle.png"); background-size: 336px 56px; }
+
+/* the floating reaction: pixel text at 1:1 with the art (8 px = one font pixel per art pixel), 1 px dark outline, rises above his head */
+#scene .react { position: absolute; left: 92px; top: 24px; transform: translateX(-50%); white-space: nowrap; font: 8px/1 var(--font-pixel); text-transform: uppercase; color: var(--cream);
+  text-shadow: -1px 0 var(--ink), 1px 0 var(--ink), 0 -1px var(--ink), 0 1px var(--ink), 1px 1px var(--ink), -1px 1px var(--ink); }
+#scene .react[hidden] { display: none; }
+#scene .react[data-key="none"] { color: var(--cream-dark); }
+#scene .react[data-key="uncommon"] { color: var(--ok); }
+#scene .react[data-key="rare"], #scene .react[data-key="veryRare"] { color: var(--gold-lit); }
+#scene .react.float { animation: react-float 0.5s steps(6) both; }
+#scene .react.still { transform: translate(-50%, -8px); }
+@keyframes react-float { from { transform: translate(-50%, 0); opacity: 0; } 20% { opacity: 1; } to { transform: translate(-50%, -8px); opacity: 1; } }
+
+/* ================= the top bar (real text): progress squares in the middle, score chip right, an optional chip left, the timer under them ================= */
+#hud { position: fixed; z-index: 2; top: max(8px, env(safe-area-inset-top)); left: 12px; right: 12px; max-width: 30rem; margin: 0 auto; }
+#hud[hidden] { display: none; }
+.hud-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 0 0 6px; }
+.hud-chip, .hud-q, .hud-score { margin: var(--px); padding: 6px 10px; font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--cream); background: var(--fill);
+  box-shadow: inset 0 0 0 var(--px) var(--line), 0 0 0 var(--px) var(--cream); min-height: 34px; display: flex; align-items: center; }
+.hud-chip { justify-self: start; }
+.hud-score { justify-self: end; color: var(--gold); }
+.hud-q { padding: 6px 8px; }
+.hud-q .txt, .hud-score, .hud-chip { white-space: nowrap; }
+.squares { display: flex; gap: 4px; }
+.sq { display: block; width: 14px; height: 14px; background: var(--fill-lit); box-shadow: inset 0 0 0 2px var(--line); }
+.sq.done { background: var(--gold); box-shadow: inset 0 -3px 0 var(--gold-dark), inset 0 3px 0 var(--gold-lit); }
+.sq.now { background: var(--cream); box-shadow: inset 0 0 0 3px var(--gold), 0 0 0 2px var(--cream); }
+#hud .timer { margin: var(--px); }
+
+/* ================= the question panel: upper middle, over the sky ================= */
 main {
-  max-width: 30rem; margin: 0 auto; padding: 20px 18px 28px;
-  background: var(--fill); color: var(--cream);
+  position: fixed; z-index: 2; left: 12px; right: 12px; top: var(--ptop); margin: 0 auto; max-width: 30rem;
+  max-height: calc(var(--vh, 100dvh) - var(--ptop) - 120px - var(--kb)); overflow-y: auto; overscroll-behavior: contain;
+  padding: 16px 16px 18px; background: var(--fill); color: var(--cream);
   border: var(--px) solid var(--cream);
-  box-shadow: inset 0 0 0 var(--px) var(--line), inset 0 calc(var(--px) * 2) 0 var(--px) var(--fill-lit), 0 var(--px) 0 var(--px) #14080e;
+  box-shadow: inset 0 0 0 var(--px) var(--line), inset 0 calc(var(--px) * 2) 0 var(--px) var(--fill-lit), 0 var(--px) 0 var(--px) var(--ink);
   clip-path: var(--notch);
 }
+.no-hud main { top: max(12px, env(safe-area-inset-top)); max-height: calc(var(--vh, 100dvh) * 0.82); }
 
 /* ---- type ---- */
-h1, h2, p, table { margin: 0 0 16px; }
-h1 {
-  font: 24px/1.25 var(--font-pixel); text-transform: uppercase; color: var(--gold);
-  text-shadow: var(--px) var(--px) 0 #14080e; word-break: break-word;
-}
-h2 { font: 700 20px/1.35 var(--font-body); color: var(--cream); }
-main > p:first-child { font: 16px/1.4 var(--font-pixel); text-transform: uppercase; color: var(--cream-dark); margin-bottom: 8px; }  /* "QUESTION 3 OF 7" */
+h1, h2, p, table { margin: 0 0 14px; }
+h1 { font: 24px/1.25 var(--font-pixel); text-transform: uppercase; color: var(--gold); text-shadow: var(--px) var(--px) 0 var(--ink); word-break: break-word; }
+h2 { font: 16px/1.5 var(--font-pixel); text-transform: uppercase; color: var(--cream); overflow-wrap: anywhere; }   /* the question, in big pixel type */
 .dig { font-weight: 700; }
-.points { font: 32px/1.2 var(--font-pixel); color: var(--gold); text-transform: uppercase; text-shadow: var(--px) var(--px) 0 #14080e; }
+.points { font: 32px/1.2 var(--font-pixel); color: var(--gold); text-transform: uppercase; text-shadow: var(--px) var(--px) 0 var(--ink); }
 main > p { overflow-wrap: anywhere; }
+@media (min-width: 700px) { h2 { font-size: 24px; } main { padding: 20px 22px 22px; } }
+
+/* after an answer the question shrinks to one small line, so the panel leaves the dig site (and the floating reaction) uncovered */
+.phase-feedback h2 { font: 700 14px/1.35 var(--font-body); text-transform: none; color: var(--cream-dark); margin-bottom: 10px; }
+@media (min-width: 700px) { .phase-feedback h2 { font-size: 15px; } }
 
 /* ---- buttons: flat gold block, dark strip under it, notched corners ---- */
 button {
@@ -73,8 +141,9 @@ button {
 }
 button:hover { background: var(--gold-lit); }
 button:active { transform: translateY(var(--px)); }
-form { display: grid; gap: 14px; margin: 0 0 16px; }
+form { display: grid; gap: 12px; margin: 0 0 12px; }
 form button { width: 100%; }
+main > button { width: 100%; }
 
 /* ---- input: cream field, dark text, 18 px so iOS never zooms, 48 px tall ---- */
 input {
@@ -84,31 +153,32 @@ input {
 }
 input::placeholder { color: #6a5a52; opacity: 1; }   /* 5.6:1 on the cream field */
 :focus-visible { outline: var(--px) solid var(--focus); outline-offset: var(--px); }
-button:focus-visible { clip-path: none; }   /* clip-path would cut the focus ring off, so a focused button loses its notched corners */
+button:focus-visible { clip-path: none; }             /* clip-path would cut the focus ring off */
+main:focus-visible { outline-offset: calc(var(--px) * -2); }
 
-/* ---- timer: a segmented bar like the HUD bars (20 steps, drains by itself, CSS only), colour jump for the last quarter ---- */
+/* ---- timer (lives in the top bar): seconds in pixel digits, a segmented bar that drains by itself (CSS only), colour jump in the last quarter ---- */
 .timer {
-  display: block; margin: 0 0 22px; padding: 10px 14px 20px;
-  font: 32px/1 var(--font-pixel); color: var(--ok); background-color: #14080e;
+  display: block; margin: 0 0 10px; padding: 5px 12px 14px;
+  font: 16px/1 var(--font-pixel); color: var(--ok); background-color: var(--ink);
   background-image:
-    repeating-linear-gradient(90deg, transparent 0 calc(5% - 2px), #14080e calc(5% - 2px) 5%),   /* the gaps between the 20 segments */
+    repeating-linear-gradient(90deg, transparent 0 calc(5% - 2px), var(--ink) calc(5% - 2px) 5%),   /* the gaps between the 20 segments */
     linear-gradient(currentColor, currentColor);
-  background-repeat: no-repeat; background-position: 14px calc(100% - 7px), 14px calc(100% - 7px);
-  background-size: calc(100% - 28px) 8px, calc(100% - 28px) 8px;
+  background-repeat: no-repeat; background-position: 12px calc(100% - 5px), 12px calc(100% - 5px);
+  background-size: calc(100% - 24px) 6px, calc(100% - 24px) 6px;
   clip-path: var(--notch);
   animation: drain var(--secs) steps(20, end) forwards, urgent var(--secs) step-end forwards, blink 0.5s step-end calc(var(--secs) * 0.75) infinite;
 }
-@keyframes drain  { from { background-size: calc(100% - 28px) 8px, calc(100% - 28px) 8px; } to { background-size: calc(100% - 28px) 8px, 0 8px; } }
+@keyframes drain  { from { background-size: calc(100% - 24px) 6px, calc(100% - 24px) 6px; } to { background-size: calc(100% - 24px) 6px, 0 6px; } }
 @keyframes urgent { 0% { color: var(--ok); } 75% { color: var(--urgent); } 100% { color: var(--urgent); } }
 @keyframes blink  { 50% { background-color: #3a1426; } }
 .timer.low { color: var(--urgent); }            /* optional JS hook: timer.classList.toggle("low", left <= 5) */
 
 /* ---- hints (role=status) ---- */
-.msg { min-height: 3em; margin: 0 0 16px; color: var(--cream-dark); }
-.msg:not(:empty) { padding: 10px 12px; background: var(--fill-lit); color: var(--danger); border-left: var(--px) solid var(--danger); }
+.msg { min-height: 1.6em; margin: 0 0 8px; color: var(--cream-dark); }
+.msg:not(:empty) { padding: 8px 12px; background: var(--fill-lit); color: var(--danger); border-left: var(--px) solid var(--danger); }
 .msg button { min-height: 44px; margin: 4px 0 0 8px; padding: 10px 14px; }
 
-/* ---- end screen table: cards on a phone (add data-label to each td in main.js for the labels) ---- */
+/* ---- end screen table: cards on a phone (data-label on each td) ---- */
 table { width: 100%; border-collapse: collapse; }
 th { font: 16px/1.2 var(--font-pixel); text-transform: uppercase; color: var(--gold); text-align: left; padding: 8px; }
 td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: top; overflow-wrap: anywhere; }
@@ -123,28 +193,33 @@ td { padding: 8px; border-top: var(--px) solid var(--fill-lit); vertical-align: 
   td:last-child { color: var(--gold); font: 16px/1.4 var(--font-pixel); }
 }
 
-/* ---- dig scene (see dig-scene.js): the scene is a 160 x 80 pixel picture; tool and find placed by percentages ---- */
-.dig-scene { position: relative; width: 100%; margin: 0 0 22px; aspect-ratio: 160 / 80; overflow: hidden; background: var(--bg);
-  border: var(--px) solid var(--cream); box-shadow: inset 0 0 0 var(--px) var(--line); clip-path: var(--notch); }
-.dig-scene img { position: absolute; display: block; image-rendering: pixelated; }
-.dig-scene .bg { inset: 0; width: 100%; height: 100%; }
-.dig-scene .tool { width: 30%; left: calc(36 / 160 * 100% - 15%); bottom: calc((80 - 66) / 80 * 100%); }
-.dig-scene .find { width: 25%; left: calc(80 / 160 * 100% - 12.5%); bottom: calc((80 - 60) / 80 * 100%); }
-@media (prefers-reduced-motion: no-preference) {
-  .dig-scene .tool { animation: dig 0.7s steps(2, end) infinite; }
-  .dig-scene .find { animation: unearth 0.5s steps(5, end) both; }
+/* ---- museum shelf (end screen, also the share image): the finds at 2x ---- */
+.museum { list-style: none; margin: 0 0 16px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+.museum li { padding: 8px 4px 6px; text-align: center; font-size: 13px; line-height: 1.25; background: var(--fill-lit); box-shadow: inset 0 calc(var(--px) * -2) 0 0 var(--line); clip-path: var(--notch); }
+.museum img { display: block; width: 96px; height: 96px; margin: 0 auto 4px; image-rendering: pixelated; }
+
+/* ---- compact: short screens (on-screen keyboard open, landscape phones): a one-row bar and a smaller panel keep the scene in view ---- */
+.compact #hud { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; }
+.compact .hud-row { display: contents; }
+.compact .hud-chip { display: none; }
+.compact .hud-q { grid-column: 1; grid-row: 1; margin: var(--px); }
+.compact #hud .timer { grid-column: 2; grid-row: 1; margin: var(--px) 0; min-width: 0; padding: 4px 10px 12px; }
+.compact .hud-score { grid-column: 3; grid-row: 1; }
+.compact main { padding: 12px 14px 14px; max-height: calc(var(--vh, 100dvh) - var(--ptop) - 8px); }
+.compact h2 { font-size: 16px; margin-bottom: 10px; }
+.compact form { grid-template-columns: 1fr auto; gap: 8px; }
+.compact form button { width: auto; }
+.compact .msg { min-height: 0; margin-bottom: 4px; }
+@media (max-height: 500px) and (min-width: 600px) {          /* landscape phones: the panel moves to the right so the scene stays visible */
+  main { left: auto; right: 12px; width: min(26rem, 52vw); }
 }
-@keyframes dig { 50% { transform: translateY(var(--px)); } }
-@keyframes unearth { from { transform: translateY(24px); } to { transform: none; } }
 
-/* ---- museum shelf: a wooden shelf with the finds standing on it (also the share image) ---- */
-.museum { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 14px; }
-.museum li { padding: 8px 4px 6px; text-align: center; font-size: 13px; line-height: 1.25; background: var(--fill-lit);
-  box-shadow: inset 0 calc(var(--px) * -2) 0 0 var(--line); clip-path: var(--notch); }
-.museum img { display: block; width: 80px; height: 80px; margin: 0 auto 6px; image-rendering: pixelated; }
-
-/* ---- reduced motion: nothing has to move; the timer keeps its colour jump, loses the bar drain and blink ---- */
+/* ---- reduced motion: nothing has to move. The timer keeps its colour jump (not motion); the bar drain, the blink, the sprites, the clouds, the bird
+   and the floating label stop (the label still shows, at rest). ---- */
 @media (prefers-reduced-motion: reduce) {
-  .timer { animation: urgent var(--secs) step-end forwards; background-image: none; padding-bottom: 10px; }
+  .timer { animation: urgent var(--secs) step-end forwards; background-image: none; padding-bottom: 8px; }
   button:active { transform: none; }
+  #scene .sprite, #scene .clouds, #scene .twinkle, #scene .grass, #scene .bird, #scene .react { animation: none !important; }
+  #scene .bird { display: none; }
+  #scene .react { transform: translate(-50%, -8px); }
 }

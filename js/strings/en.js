@@ -16,6 +16,8 @@ export const t = {
   noMatch: "Not in today's list, so 0 points. It may still be valid, but we can't check it yet.",
   empty: "No answer given.",
   didYouMean: "Did you mean",
+  orEnter: "or press Enter",
+  pressEnter: "Press Enter to confirm.",
   typeSomething: "Type an answer first.",
   notRecognised: "Not in today's list. It may still be valid, but we can't check it yet. Try another answer.",
   // Names of the dig tools and finds. The sprites come from the style kit (DIG in kit/dig-scene.js).
@@ -28,6 +30,9 @@ export const t = {
   },
   // The dig scene is decorative (aria-hidden); this sentence is its text alternative.
   youDug: (tool, find) => `You dug up a ${find.toLowerCase()} with a ${tool.toLowerCase()}.`,
+  scoreLabel: (n) => `Score ${n}`,
+  // Floating text over the dig site after an answer (2d kit).
+  reaction: { none: "Nothing", common: "Common", uncommon: "Nice!", rare: "Rare find!", veryRare: "One in a million!" },
   findCol: "Find",
   total: "Total score",
   yourAnswer: "Your answer",
