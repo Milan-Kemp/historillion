@@ -1,6 +1,6 @@
 # Historillion
 
-Daily history game: 7 questions, 20 seconds each, the rarer your answer the more points.
+Daily history game: 7 questions, 3 seconds to read and then 25 seconds to answer, the rarer your answer the more points.
 
 ## Run locally
 ```
@@ -18,8 +18,8 @@ npm test
 `points = min(100, round(15 * log2(1 / prior_share)))`. Half as common = 15 more points.
 
 ## How a game plays
-- Type an answer and press Enter. A wrong or unknown answer does not count: you get a hint and can try again until the 20 seconds are over.
-- A typo never counts by itself. You get "Did you mean ...": press Enter to fill it in, Enter again to confirm (or click the suggestion).
+- Type an answer and press Enter. A wrong or unknown answer does not count: you get a hint and can try again until the 25 seconds are over.
+- A typo never counts by itself. Press Enter and the suggestion is filled in above your answer bar ("Did you mean Nero? Press Enter."); press Enter once more to confirm, or type to replace it.
 - After a correct answer the archaeologist digs. Points, what he found and how rare the answer was show up when the find is out of the ground (any key or tap skips the dig). The 7 finds stay on the bench.
 - The end screen shows your score on an estimated curve, your rank, and every question: tap a question to see every possible answer, with rarity filters, a search box, explanations and sources.
 - The curve is an estimate from the predicted answer shares (`js/distribution.js`), not real players.

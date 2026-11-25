@@ -23,7 +23,8 @@ const scene = kit.mountScene?.();
 // The new end screen (curve, ranks, finds list) only exists in the 2d kit.
 const endKit = scene ? await import(`../${KIT}/end-screen.js`) : null;
 
-const SECONDS = 20;
+const SECONDS = 25;
+const READ_SECONDS = 3; // time to read the question before the clock starts
 const app = document.getElementById("app");
 
 // Elements are built with textContent, never innerHTML: player input is untrusted.
@@ -85,22 +86,23 @@ function ask(day, i, results) {
     scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), timer, soundLabel: t.soundLabel });
     // The "picks up his shovel" beat looks like digging for no reason, so only the first question gets it.
     if (i === 0) { scene.newDay(); scene.ready(); } else scene.idle();
-    show(el("h2", { textContent: question.prompt }), form, msg);
+    show(el("h2", { textContent: question.prompt }), msg, form);
   } else {
     show(
       el("p", { textContent: t.question(i + 1, day.questions.length) }),
       kit.digScene(null, null),
       el("h2", { textContent: question.prompt }),
-      timer, form, msg,
+      timer, msg, form,
     );
   }
   timer.style.setProperty("--secs", `${SECONDS}s`);
   input.focus();
 
-  const deadline = performance.now() + SECONDS * 1000;
+  const start = performance.now() + READ_SECONDS * 1000;
+  const deadline = start + SECONDS * 1000;
   let lastTick = null;
   let done = false;
-  let hint = null; // the current "did you mean" suggestion
+  let autofilled = null; // the suggestion we filled in after a typo; it only counts once the player confirms it with Enter
   let last = null; // last wrong try, shown on the feedback screen if time runs out
   const finish = (typed, g) => {
     done = true;
@@ -113,36 +115,40 @@ function ask(day, i, results) {
     if (done) return;
     scene?.sound.play("submit");
     const typed = input.value;
-    if (!typed.trim()) {
-      // Enter on an empty field after a "did you mean" hint fills in the suggestion; the next Enter submits it.
-      if (hint) { input.value = hint.canonical; hint = null; msg.textContent = t.pressEnter; return; }
-      msg.textContent = t.typeSomething;
-      return;
-    }
-    hint = null;
+    if (!typed.trim()) { msg.textContent = t.typeSomething; return; }
     const g = grade(typed, question);
     if (g.name) return finish(typed, g);
     last = { typed, g };
-    hint = g.rejected ? null : suggest(typed, question);
+    const hint = g.rejected ? null : suggest(typed, question);
     if (hint) {
-      const suggestion = hint;
-      const yes = el("button", { type: "button", textContent: `→ ${suggestion.canonical}`, onclick: () => { input.value = suggestion.canonical; submit(); } });
-      msg.replaceChildren(`${t.didYouMean} `, yes, ` ${t.orEnter}`);
-    } else msg.textContent = g.rejected ? g.text : t.notRecognised;
+      autofilled = input.value = hint.canonical; // "Nerooo" + Enter fills in "Nero"; one more Enter confirms it, typing replaces it
+      msg.textContent = t.didYouMean(hint.canonical);
+      input.select();
+    } else {
+      autofilled = null;
+      msg.textContent = g.rejected ? g.text : t.notRecognised;
+      input.value = "";
+    }
     scene?.sound.play(hint ? "hint" : "wrong");
-    input.value = "";
     input.focus();
   };
   const timeUp = () => {
     if (done) return;
     const typed = input.value;
-    const g = typed.trim() ? grade(typed, question) : null;
+    const g = typed.trim() && typed !== autofilled ? grade(typed, question) : null;
     if (g?.name) return finish(typed, g);
     const l = g ? { typed, g } : last;
     finish(l?.typed ?? "", l?.g ?? grade("", question));
   };
   const tick = setInterval(() => {
-    const left = Math.ceil((deadline - performance.now()) / 1000);
+    const now = performance.now();
+    if (now < start) { // reading time: the clock (and its bar) wait
+      timer.classList.add("reading");
+      timer.textContent = t.readFirst(Math.ceil((start - now) / 1000));
+      return;
+    }
+    timer.classList.remove("reading");
+    const left = Math.ceil((deadline - now) / 1000);
     timer.textContent = t.seconds(Math.max(left, 0));
     timer.classList.toggle("low", left <= SECONDS / 4);
     if (left <= 5 && left > 0 && left !== lastTick) { lastTick = left; scene?.sound.play("tick"); }

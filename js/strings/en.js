@@ -1,9 +1,10 @@
 export const t = {
   title: "Historillion",
-  tagline: "7 questions about history. 20 seconds each. The rarer your answer, the more points.",
+  tagline: "7 questions about history. 3 seconds to read, then 25 seconds to answer. The rarer your answer, the more points.",
   start: "Start",
   question: (n, total) => `Question ${n} of ${total}`,
   seconds: (s) => `${s}s`,
+  readFirst: (s) => `Read ${s}`, // the 3 seconds before the clock starts
   placeholder: "Type your answer",
   submit: "Submit",
   next: "Next",
@@ -15,9 +16,7 @@ export const t = {
   rejected: "Does not count",
   noMatch: "Not in today's list, so 0 points. It may still be valid, but we can't check it yet.",
   empty: "No answer given.",
-  didYouMean: "Did you mean",
-  orEnter: "or press Enter",
-  pressEnter: "Press Enter to confirm.",
+  didYouMean: (name) => `Did you mean ${name}? Press Enter.`,
   typeSomething: "Type an answer first.",
   notRecognised: "Not in today's list. It may still be valid, but we can't check it yet. Try another answer.",
   // Names of the dig tools and finds. The sprites come from the style kit (DIG in kit/dig-scene.js).

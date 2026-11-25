@@ -50,3 +50,6 @@ body.phase-end.no-hud main { top: 0; bottom: 0; margin-block: auto; height: fit-
 
 /* The result of an answer (points, what he dug up, how rare) waits for the dig; main.js removes .wait when the find is out of the ground. visibility keeps the panel from jumping. */
 .wait { visibility: hidden; }
+
+/* Reading time before the clock starts: the timer plate shows "Read 3" and its bar and colour animations wait (main.js removes .reading). */
+.timer.reading, #hud .timer.reading { animation-play-state: paused !important; }
