@@ -16,6 +16,14 @@ const GLASS = {
   soft: ["rgba(24, 12, 20, 0.16)", "blur(6px) brightness(0.8)"],
 }[new URLSearchParams(location.search).get("glass") ?? "light"];
 if (GLASS && KIT === "kit-b") { document.documentElement.style.setProperty("--glass", GLASS[0]); document.documentElement.style.setProperty("--blur", GLASS[1]); }
+if (KIT === "kit-b") {
+  // layout-phone.css (v10: question without a box, answer bar at the bottom, one big word) comes right after theme.css, before our own css/answers.css
+  const layout = document.createElement("link");
+  layout.rel = "stylesheet";
+  layout.href = "kit-b/layout-phone.css";
+  document.getElementById("theme").after(layout);
+  await new Promise((done) => { layout.onload = layout.onerror = done; });
+}
 const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
@@ -167,19 +175,39 @@ function feedback(day, i, results) {
     hud(total - r.pts); // the points are not counted before the find is out of the ground
     scene.dig(r.key, t.reaction[r.key], t.benchLabel[r.key]);
   }
+  const typed = r.typed.trim() || "-";
+  const next = el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(day, results) : ask(day, i + 1, results)) });
+  const rarityLine = r.rarity + (r.share ? `. ${t.shareOf(Math.round(r.share * 100))}` : "");
+  if (scene) {
+    // "Your answer: king tut -> Tutankhamun" when the counted answer is another word than what was typed
+    const counted = r.name && r.name.toLowerCase() !== typed.toLowerCase() ? ` \u2192 ${r.name}` : "";
+    const word = el("p", { className: "rarity-word wait", textContent: t.rarityWord[r.key] });
+    word.dataset.key = r.key;
+    show(
+      el("h2", { textContent: r.prompt }),
+      el("p", { className: "your-answer", textContent: `${t.yourAnswer}: ${typed}${counted}` }),
+      word,
+      el("p", { className: "points wait", textContent: `+${r.pts}` }),
+      el("p", { className: "rarity-line wait", textContent: rarityLine }),
+      el("p", { className: "dig wait", textContent: t.youDug(r.dig.tool, r.dig.find) }),
+      el("p", { className: "explain wait", textContent: r.text }),
+      next,
+    );
+    revealWhenDug(app.querySelectorAll(".rarity-word, .points, .rarity-line, .dig, .explain"), () => hud(total));
+    return;
+  }
   show(
-    ...(scene ? [] : [el("p", { textContent: t.question(i + 1, day.questions.length) })]),
+    el("p", { textContent: t.question(i + 1, day.questions.length) }),
     el("h2", { textContent: r.prompt }),
-    ...(scene ? [] : [kit.digScene(DIG[r.key].tool, DIG[r.key].find)]),
-    el("p", { textContent: `${t.yourAnswer}: ${r.typed.trim() || "-"}` }),
+    kit.digScene(DIG[r.key].tool, DIG[r.key].find),
+    el("p", { textContent: `${t.yourAnswer}: ${typed}` }),
     ...(r.name ? [el("p", { textContent: t.matchedAs(r.name) })] : []),
     el("p", { className: "dig", textContent: t.youDug(r.dig.tool, r.dig.find) }),
     el("p", { className: "points", textContent: t.points(r.pts) }),
-    el("p", { className: "rarity-line", textContent: r.rarity + (r.share ? `. ${t.shareOf(Math.round(r.share * 100))}` : "") }),
+    el("p", { textContent: rarityLine }),
     el("p", { textContent: r.text }),
-    el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(day, results) : ask(day, i + 1, results)) }),
+    next,
   );
-  if (scene) revealWhenDug(app.querySelectorAll(".dig, .points, .rarity-line"), () => hud(total));
 }
 
 // The result (points, what he dug up, how rare) waits for the dig: it shows when the scene shows its reaction label, which is when the find is out of the

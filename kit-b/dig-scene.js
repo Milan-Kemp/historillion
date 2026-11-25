@@ -172,7 +172,7 @@ export function mountScene(parent = document.body, opts = {}) {
   };
 
   let timers = [];
-  let cam = 0;                                                // the camera push-in: whole zoom steps added to the zoom (0 = normal view); see camera() and paint()
+  let cam = null;                                             // the camera push-in { step, left, right }: whole zoom steps added to the zoom (null = normal view); see camPlace() and paint()
   let hushed = false;
   let settleFn = null;
   let phaseWas = false;
@@ -191,7 +191,7 @@ export function mountScene(parent = document.body, opts = {}) {
     if (settleFn) { removeEventListener("keydown", settleFn, true); removeEventListener("pointerdown", settleFn, true); settleFn = null; }
     root.classList.remove("rumble", "dim", "dim-strong", "dim-tight", "beat");
     world.classList.remove("rumble");
-    if (cam) { cam = 0; paint(); }                                        // the camera is back at its normal view
+    if (cam) { cam = null; paint(); }                                     // the camera is back at its normal view
     if (hushed) { hushed = false; sound.unhush(); }                       // the held breath is over
   };
   const hideActors = () => {
@@ -411,7 +411,8 @@ export function mountScene(parent = document.body, opts = {}) {
       for (let i = 0; i < n; i++) T.hit(i, t0 + i * T.cycle);
       return t0 + n * T.cycle;
     };
-    const push = (step, t) => later(() => { cam = step; paint(); if (step) { sound.play("thud"); root.classList.add("dim", "dim-tight"); } }, t);   // the push-in and the vignette closing round the pit happen together
+    // push(step, t, left, right): at t seconds the camera is `step` whole zoom steps closer, keeping stage x left..right on screen (the man from `left`, the pit to `right`); step 0 = back to normal
+    const push = (step, t, left = 16, right = 148) => later(() => { cam = step ? { step, left, right } : null; paint(); if (step) { sound.play("thud"); root.classList.add("dim", "dim-tight"); } }, t);   // the closing vignette starts together with the zoom (our change)
     const beats = (from, to, t0, gap) => { let n = 0; for (let t = t0; t < to; t += gap, n++) { const i = n; later(() => { sound.play("heartbeat", i); if (opts.seek == null) { root.classList.add("beat"); setTimeout(() => root.classList.remove("beat"), 120); } }, t); gap = Math.max(gap * 0.93, 0.5); } };
     const breath = (t, seconds) => later(() => { hushed = true; sound.hush(seconds); vignetteOff(); root.classList.add("dim", "dim-tight"); }, t);
 
@@ -432,7 +433,7 @@ export function mountScene(parent = document.body, opts = {}) {
         later(() => { fx("puff", 112, 56, 0.5); fx("soil", 104, 60, 0.45); }, t + 0.3);
         later(() => { fx("soil", 120, 58, 0.45); if (i % 2) { fx("clink", 100, 54, 0.3); sound.play("clink"); } }, t + 0.5);
       }
-      push(1, 1.8);                                             // one zoom step closer, around the pit (and the vignette closes with it)
+      push(1, 1.8, 16, 148);                                         // one zoom step closer, around the pit (and the vignette closes with it); he stands at the far left (x 18) watching the digger
       beats(0, 3.9, 1.2, 0.85);
       later(() => { rumble(false); leave(MACHINE.digger_drive, 0.35); fx("puff", 108, 62, 0.5); }, 3.25);
       breath(3.4, 1.5);                                         // everything goes quiet, the vignette closes round the pit
@@ -447,7 +448,7 @@ export function mountScene(parent = document.body, opts = {}) {
       vignetteOn(true);
       sound.play("swell-veryRare");
       strokes("pickaxe", 0.2, 2);                               // two strikes: the second one rings on something hard
-      push(1, 1.5);
+      push(1, 1.5, 48, 148);
       later(() => { winch.hidden = false; play(winch, WINCH.rest, 1, "once"); hold(winch); fx("puff", 90, 80, 0.5); fx("puff", 152, 78, 0.5); sound.play("thud"); }, 1.6);   // the rig stands up beside the trench
       later(() => { play(man, MAN.crank, 0.8, "loop"); rumble(true); }, 1.7);
       const W = 1.0;                                            // one bucket per second: down, filled, up, tipped over the back of the trench, back
@@ -459,7 +460,7 @@ export function mountScene(parent = document.body, opts = {}) {
         later(() => { fx("soil", 119, 20, 0.45); fx("puff", 126, 22, 0.5); }, t + 0.62);                // ... and tips behind it, onto the spoil heaps
         if (i % 2) later(() => { fx("clink", 112, 60, 0.3); sound.play("clink"); }, t + 0.3);
       }
-      push(2, 3.2);                                             // a second zoom step
+      push(2, 3.2, 62, 148);                                    // a second zoom step (from here he works at the trench, x 63 and up; the last rim pixels may clip on a narrow phone)
       beats(0, 6.0, 2.4, 0.9);
       later(() => { rumble(false); play(winch, WINCH.rest, 1, "once"); hold(winch); }, 5.05);
       breath(5.1, 1.4);
@@ -536,34 +537,25 @@ export function mountScene(parent = document.body, opts = {}) {
     document.documentElement.dataset.glass = a < 0.06 ? "clear" : a < 0.25 ? "light" : "";
   }
 
-  // ---- the camera (v7): a push-in on the pit in WHOLE zoom steps (the pixels stay crisp): zoom s + cam, kept around the spot between him and the pit (stage 106, 54) ----
+  // ---- the camera (v10): a push-in on the pit in WHOLE zoom steps (the pixels stay crisp). camPlace() picks the largest step (up to the asked one) that keeps stage x left..right and the
+  // rows 20 to 102 (the man's head to his feet and the pit) inside the FREE AREA (between the question text and the bottom bar, see fit()), and shifts the stage so nothing leaves the
+  // screen or goes under the question, the top bar or the bottom bar. Step 0 is exactly the layout fit() computed. ----
   let base = { s: 3, sy: 40, ox: 0 };
-  // The camera pushes in on the pit, but the man and the pit (stage x 52 to 152, rows 22 to 100) must stay on screen and out from under the panel and the top bar.
-  // v8 pushed in blindly: at 375 x 812 he ended up 40 px off the left edge and 62 px under the panel, at 1896 x 930 the pit 47 px under the panel.
-  // camPlace(s) returns where the stage goes at zoom s (keeping the spot between him and the pit where it was when it can, else shifted just enough), or null if it cannot fit.
-  function camPlace(s) {
-    const vv = window.visualViewport;
-    const vw = window.innerWidth, vh = vv ? vv.height : window.innerHeight;
-    const appEl = document.getElementById("app");
-    const panel = appEl ? appEl.getBoundingClientRect() : { left: vw, bottom: 0 };
-    const side = document.documentElement.classList.contains("side");
-    const hudBottom = hudEl.hidden ? 0 : hudEl.getBoundingClientRect().bottom;
-    const topLimit = Math.max(hudBottom, side ? 0 : panel.bottom) + 6;
-    const rightLimit = (side ? panel.left : vw) - 4;
-    const oxMin = Math.ceil(4 + 40 * s), oxMax = Math.floor(rightLimit - 60 * s);          // left edge of the man at x 52, right edge of the pit at x 152 (stage origin is x -92)
-    const syMin = Math.ceil((topLimit - 22 * s) / s), syMax = Math.floor((vh - 4 - 100 * s) / s);
-    if (oxMin > oxMax || syMin > syMax) return null;
-    const ox = Math.min(Math.max(base.ox + 14 * (base.s - s), oxMin), oxMax);
-    const sy = Math.min(Math.max(Math.round(((base.sy + 54) * base.s) / s - 54), syMin), syMax);
-    return { ox, sy };
+  let area = { top: 0, bottom: 600, vw: 375 };
+  function camPlace({ step, left, right }) {
+    for (let st = step; st > 0; st--) {
+      const s = base.s + st;
+      if ((right - left) * s > area.vw - 16 || 82 * s > area.bottom - area.top) continue;            // this step would not fit: try a smaller one
+      let ox = area.vw / 2 - ((left + right) / 2 - 92) * s;                                           // the window left..right in the middle of the screen ...
+      ox = Math.min(Math.max(ox, 8 - (left - 92) * s), area.vw - 8 - (right - 92) * s);               // ... but never past either edge
+      const row20 = Math.min(Math.max((area.top + area.bottom) / 2 - 61 * s, area.top), area.bottom - 82 * s);   // screen y of stage row 20 (the rows 20 to 102 centred in the free area)
+      return { s, ox: Math.round(ox), sy: Math.round(row20 / s - 20) };
+    }
+    return null;
   }
   function paint() {
-    let c = reduce.matches ? 0 : cam;
-    let place = null;
-    while (c > 0 && !(place = camPlace(base.s + c))) c--;               // fewer zoom steps on a screen that has no room for them
-    const s = base.s + c;
-    const ox = place ? place.ox : base.ox + 14 * (base.s - s);          // the spot between him and the pit (stage x 106) stays where it was on screen, so he stays in view too
-    const sy = place ? place.sy : Math.round(((base.sy + 54) * base.s) / s - 54);   // ... and so does its height (stage y 54), unless the screen has no room for that
+    const p = cam && !reduce.matches ? camPlace(cam) : null;
+    const { s, ox, sy } = p ?? base;
     root.style.setProperty("--s", s);
     root.style.setProperty("--sy", sy);
     root.style.setProperty("--ox", `${ox}px`);
@@ -572,51 +564,62 @@ export function mountScene(parent = document.body, opts = {}) {
     root.style.setProperty("--vigr", `${28 * s}px`);
   }
 
-  // ---- fit: a whole-number zoom so every art pixel is the same size; the stage sits in the space below the panel ----
+  // ---- fit: a whole-number zoom so every art pixel is the same size. v10: while a question is on screen the stage sits in the FREE AREA between the question text (the bottom of main) and the
+  // bottom bar (the input bar, the hint line or the Next button, all position: fixed); on the intro and end screens (body.no-hud) it sits below the centred panel as before ----
   function fit() {
     const vv = window.visualViewport;
     const vw = window.innerWidth;
     const vh = vv ? vv.height : window.innerHeight;
     const root_ = document.documentElement;
+    const kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;     // on-screen keyboard (iOS keeps the layout viewport)
+    root_.style.setProperty("--kb", `${kb}px`);                          // first: the bottom bar's position depends on it
     const compact = vh < 560;
-    root_.classList.toggle("compact", compact);                         // keyboard open or a landscape phone: one-row bar, smaller panel
+    root_.classList.toggle("compact", compact);                         // keyboard open or a landscape phone: smaller type
     root_.classList.remove("side");
     const hudBottom = () => (hudEl.hidden ? 12 : Math.ceil(hudEl.getBoundingClientRect().bottom));
     let ptop = hudBottom() + 10;
     const need = 117;                                                   // native rows the stage needs: from the floating label (stage row 18) to the bottom of the bench (134)
     const sMin = Math.ceil(Math.max(vw / 640, vh / 460, 2));            // the picture must cover the screen
     const sWide = Math.max(Math.floor(vw / 125), 2);                    // the stage is about 125 art pixels wide
-    const reserve = compact ? 170 : Math.min(vh * 0.5, 340);            // room kept for the panel
-    let top = ptop + reserve + 4;
-    let sFit = Math.floor((vh - 8 - top) / need);
-    let cx = vw / 2;                                                    // the screen x the stage is centred on
-    const SIDE_W = Math.min(480, vw * 0.36);
-    if (!compact && vw >= 900 && sFit < 3) {                            // a wide, low window (about 1280 x 720): the panel moves to the right, the stage gets the left part and a bigger zoom. The intro and end screens stay centred.
-      root_.classList.add("side");
-      cx = (vw - SIDE_W - 36) / 2;
-      ptop = hudBottom() + 10;
-      top = ptop;
-      sFit = Math.floor((vh - 8 - top) / need);
+    const mainEl = document.querySelector("main");
+    const phone = mainEl && !hudEl.hidden && !document.body.classList.contains("no-hud") && !document.body.classList.contains("phase-end");     // the question layout (not the intro, not the end screen)
+    let top, bottom, s;
+    if (phone) {
+      top = Math.max(hudBottom() + 6, Math.ceil(mainEl.getBoundingClientRect().bottom) + 6);
+      const bars = [...mainEl.querySelectorAll(":scope > form, :scope > button, :scope > .msg")].filter((n) => n.getClientRects().length).map((n) => n.getBoundingClientRect().top);
+      bottom = (bars.length ? Math.min(...bars) : vh - 8) - 8;
+      s = 2;
+      for (let t = Math.min(4, sWide); t >= 2; t--) if (bottom - need * t >= top - 8 * t) { s = t; break; }     // the label rows (18 to 26) may slide under the question text, nothing else
+      s = Math.max(s, Math.min(sMin, 4));                              // the picture must still cover the screen (tall phones)
+    } else {
+      const reserve = compact ? 170 : Math.min(vh * 0.5, 340);        // room kept for the centred panel
+      top = ptop + reserve + 4;
+      bottom = vh - 8;
+      s = Math.max(2, Math.min(4, Math.floor((bottom - top) / need), sWide));
+      s = Math.max(s, Math.min(sMin, 4));
     }
-    const side = root_.classList.contains("side");
-    const sCover = side ? Math.ceil((vw - cx) / 320) : sMin;
-    const s = Math.max(sCover, 2, Math.min(4, sFit, side ? 4 : sWide));
-    // centred in the space below the panel when it fits; when it does not (a short phone), it rises under the panel so the pit and the bench stay on screen
-    const space = vh - 8 - top;
-    const topUsed = Math.min(top + Math.max(space - need * s, 0) / 2, vh - 8 - need * s);
+    const space = bottom - top;
+    const topUsed = Math.min(Math.max(top + (space - need * s) / 2, top - 8 * s), bottom - need * s);   // centred in the free area; when it does not fit it rises under the question, never past the bar
     const sy = Math.round(topUsed / s - 18);                            // the first row we need is stage row 18
-    const kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;     // on-screen keyboard (iOS keeps the layout viewport)
     root.classList.toggle("z2", s < 3);                                 // at zoom 2 the bench labels use short codes (see BENCH_SHORT): 7 words do not fit 7 places 34 px apart
-    base = { s, sy, ox: Math.round(cx) };
+    base = { s, sy, ox: Math.round(vw / 2) };
+    area = { top, bottom, vw };
     paint();
     const rs = root_.style;
-    rs.setProperty("--cx", `${Math.round(cx)}px`);
+    rs.setProperty("--cx", `${Math.round(vw / 2)}px`);
     rs.setProperty("--stagetop", `${Math.round(topUsed)}px`);                // where the stage begins: the intro / end panel stops here (see theme.css)
     glassMode();
-    rs.setProperty("--kb", `${kb}px`);
     rs.setProperty("--vh", `${vh}px`);
     rs.setProperty("--ptop", `${ptop}px`);
   }
+  // the layout depends on the height of the question text and on which bar is showing: refit when main changes (a new question, a hint, the feedback) or the body class changes
+  const refit = () => requestAnimationFrame(() => fit());
+  const mainNode = document.querySelector("main");
+  if (mainNode) {
+    new MutationObserver(refit).observe(mainNode, { childList: true, subtree: true, characterData: true });
+    if (window.ResizeObserver) new ResizeObserver(refit).observe(mainNode);
+  }
+  new MutationObserver(refit).observe(document.body, { attributes: true, attributeFilter: ["class"] });
   addEventListener("resize", fit);
   window.visualViewport?.addEventListener("resize", fit);
   window.visualViewport?.addEventListener("scroll", fit);

@@ -48,8 +48,9 @@
 /* The end screen: the results panel sits in the middle of the screen (not stuck to the top) and scrolls inside. body.phase-end is set by main.js. */
 body.phase-end.no-hud main { top: 0; bottom: 0; margin-block: auto; height: fit-content; max-height: min(82vh, calc(var(--vh, 100dvh) - 40px)); }
 
-/* The result of an answer (points, what he dug up, how rare) waits for the dig; main.js removes .wait when the find is out of the ground. visibility keeps the panel from jumping. */
-.wait { visibility: hidden; }
 
 /* Reading time before the clock starts: the timer plate shows "Read 3" and its bar and colour animations wait (main.js removes .reading). */
 .timer.reading, #hud .timer.reading { animation-play-state: paused !important; }
+
+/* The rarity words under the finds on the bench were too small to read on a phone: 13 px, a darker chip. */
+#scene .slot-label { font-size: calc(13px / var(--s, 3)); letter-spacing: -0.03em; background: rgba(20, 8, 14, 0.92); }

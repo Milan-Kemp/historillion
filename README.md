@@ -35,4 +35,6 @@ npm test
 
 Panel transparency of the 2d kit (add to the address): default is very light glass, `&glass=soft` the previous light glass, `&glass=clear` no panel background at all, `&glass=classic` the kit's own darker glass.
 
+The 2d kit's phone layout (`kit-b/layout-phone.css`: the question without a box, the answer bar at the bottom, one big rarity word) is loaded by `js/main.js` right after `theme.css`; the 8-bit kit does not use it.
+
 Style changes are made in a separate chat that delivers a new `kit-b/`. Our own changes to that kit (the camera in `dig-scene.js`, the dig timing, the centred intro and end screens) must be kept when it is replaced; see git history for `kit-b/dig-scene.js`.

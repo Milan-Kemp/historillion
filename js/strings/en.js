@@ -30,6 +30,8 @@ export const t = {
   // The dig scene is decorative (aria-hidden); this sentence is its text alternative.
   youDug: (tool, find) => `You dug up a ${find.toLowerCase()} with a ${tool.toLowerCase()}.`,
   scoreLabel: (n) => `Score ${n}`,
+  // The one big word after an answer (2d kit, phone layout).
+  rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "Nothing" },
   // Floating text over the dig site after an answer (2d kit).
   // The word under each find on the bench (2d kit).
   benchLabel: { none: "No\nfind", common: "Common", uncommon: "Un-\ncommon", rare: "Rare", veryRare: "Very\nrare" }, // \n = a line break under the find

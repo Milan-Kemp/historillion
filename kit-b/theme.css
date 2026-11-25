@@ -101,7 +101,7 @@ body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color:
   background-position-y: calc(var(--row, 0) * -104px); }
 #scene .winch { --fw: 176px; left: 2px; top: -4px; width: 176px; height: 104px; background-image: url("scene/winch.png"); background-size: 1408px 312px;
   background-position-y: calc(var(--row, 0) * -104px); }                                                          /* v8: the hand winch of the very rare beat (earth goes OUT of the pit) */
-#scene .find-tag { position: absolute; left: 122px; top: 70px; white-space: nowrap; font: 8px/1 var(--font-art); text-transform: uppercase; color: var(--fill);
+#scene .find-tag { position: absolute; left: 112px; top: 72px; transform: translateX(-50%); white-space: nowrap; font: 8px/1 var(--font-art); text-transform: uppercase; color: var(--fill);
   background: var(--cream); padding: 2px 3px; box-shadow: 0 0 0 1px var(--ink), 1px 1px 0 1px var(--ink); }          /* v8: a small museum tag with the name of the find, next to it while it is held up */
 #scene .find-tag[hidden] { display: none; }
 #scene .find-wrap.lift { animation: lift 0.6s steps(6) forwards; }                                                   /* the winch lifts the find 12 px out of the pit */

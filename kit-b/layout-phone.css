@@ -1,0 +1,85 @@
+/* Historillion, 2D kit, v10: the cleaner "Krillion" layout. Load it AFTER theme.css.
+   While a question is on screen (everything except the intro and the end screen, i.e. body:not(.no-hud):not(.phase-end)):
+   1. the question is big text straight over the scene under the top bar, no box (a dark halo on every letter and a soft dark fade behind the top block);
+   2. the answer bar (input + button) is fixed at the bottom, above the keyboard (--kb), with the round timer next to it; the hint (p.msg) sits directly above the bar;
+   3. after the answer: ONE big rarity word (p.rarity-word) with the points (p.points, "+30") under it and the explanation (p.explain) small and muted; Next replaces the bar.
+   The dig site (the man, the pit, the bench) stays in the free area between the question text and the bottom bar; dig-scene.js measures it (fit(), camPlace()).
+   Markup contract (what main.js renders, see FULLSCREEN.md):
+     ask:       h2 (question), p.your-answer?, form (input + button), p.msg (role=status), the timer lives in #hud (class .reading during the 3 s of reading time)
+     feedback:  h2, p.your-answer, p.rarity-word.wait[data-key], p.points.wait, p.rarity-line.wait, p.dig.wait, p.explain.wait, button (Next)
+                (main.js removes .wait from those when the find is out of the ground; before that only the question and the answer show) */
+
+:root {
+  --bar-h: 56px;                                                     /* the input bar, the button, the Next button and the round timer are this tall */
+  --bar-bottom: calc(var(--kb, 0px) + max(12px, env(safe-area-inset-bottom)));
+  --col-l: max(12px, calc((100vw - 30rem) / 2));                     /* the column is 30rem wide and centred; on a phone it is the whole width */
+  --col-r: var(--col-l);
+  --halo-q: -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink), 1px 1px 0 var(--ink), 0 -1px 0 var(--ink), 0 1px 0 var(--ink), -1px 0 0 var(--ink), 1px 0 0 var(--ink),
+    0 0 4px rgba(8, 4, 16, 0.95), 0 0 12px rgba(8, 4, 16, 0.8);       /* a full dark outline and a glow: readable on any background */
+}
+
+/* ---- 1. the question, without a box ---- */
+body:not(.no-hud):not(.phase-end) main {
+  top: var(--ptop); max-height: none; overflow: visible; padding: 0 4px; text-align: center;
+  background: none; border: 0; border-radius: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+  text-shadow: var(--halo-q);
+}
+body:not(.no-hud):not(.phase-end) main::before {                                     /* a very soft darkening from the top of the screen to just under the question (behind the text, above the scene) */
+  content: ""; position: absolute; left: -50vw; right: -50vw; top: calc(var(--ptop) * -1); bottom: -28px; z-index: -1; pointer-events: none;
+  background: linear-gradient(rgba(8, 4, 16, 0.55), rgba(8, 4, 16, 0.4) 70%, rgba(8, 4, 16, 0));
+}
+body:not(.no-hud):not(.phase-end) h2 { font: 700 var(--px-1)/1.25 var(--font-display); color: var(--cream); margin: 0 0 var(--sp-2); text-shadow: var(--halo-q); }
+@media (min-width: 700px) { body:not(.no-hud):not(.phase-end) h2 { font-size: var(--px-2); } }
+body:not(.no-hud):not(.phase-end) main > p { margin: 0 0 var(--sp-2); max-width: none; font-size: var(--fs-body); color: var(--cream); text-shadow: var(--halo-q); }
+body:not(.no-hud):not(.phase-end) main > .your-answer { font-size: var(--fs-small); color: var(--cream); }
+html.compact body:not(.no-hud):not(.phase-end) h2 { font-size: var(--fs-lead); line-height: 1.25; margin-bottom: var(--sp-1); }   /* keyboard open: a smaller question */
+
+/* ---- 2. the answer bar at the bottom, the hint above it, the round timer next to it ---- */
+body:not(.no-hud):not(.phase-end) main > form {
+  position: fixed; left: var(--col-l); right: calc(var(--col-r) + var(--bar-h) + 10px); bottom: var(--bar-bottom);
+  display: flex; gap: 8px; margin: 0; text-shadow: none;
+}
+body:not(.no-hud):not(.phase-end) main > form input { flex: 1; min-width: 0; min-height: var(--bar-h); height: var(--bar-h); }
+body:not(.no-hud):not(.phase-end) main > form button { flex: none; width: auto; height: var(--bar-h); padding: 0 16px; }
+body:not(.no-hud):not(.phase-end) main > .msg { position: fixed; left: var(--col-l); right: var(--col-r); bottom: calc(var(--bar-bottom) + var(--bar-h) + 8px); margin: 0; text-align: center; font-size: var(--fs-body); }
+body:not(.no-hud):not(.phase-end) main > .msg:empty { display: none; }
+body:not(.no-hud):not(.phase-end) main > .msg:not(:empty) { background: rgba(24, 12, 20, 0.7); border-radius: 8px; border-left: 0; color: var(--danger); text-shadow: none; padding: 8px 12px; }
+body:not(.no-hud):not(.phase-end) main > .msg button { min-height: 36px; margin: 0 0 0 8px; padding: 6px 12px; font-size: var(--fs-body); }
+/* the timer: a round ring that drains (CSS only, 20 steps), the seconds in the middle */
+@property --p { syntax: "<number>"; inherits: false; initial-value: 100; }
+body:not(.no-hud):not(.phase-end) #hud .timer {
+  position: fixed; right: var(--col-r); bottom: var(--bar-bottom); width: var(--bar-h); height: var(--bar-h); margin: 0; padding: 0;
+  display: grid; place-items: center; border-radius: 50%; clip-path: none; font: 700 var(--px-1)/1 var(--font-display); text-shadow: none; color: var(--ok);
+  background-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
+  background-image: radial-gradient(circle, rgba(14, 8, 18, 0.88) 0 60%, transparent 61%), conic-gradient(currentColor calc(var(--p) * 1%), rgba(250, 246, 235, 0.2) 0);
+  background-size: 100% 100%, 100% 100%; background-position: 0 0, 0 0; background-repeat: no-repeat;
+  animation: ring var(--secs) steps(20, end) forwards, urgent var(--secs) step-end forwards;
+}
+@keyframes ring { from { --p: 100; } to { --p: 0; } }
+body:not(.no-hud):not(.phase-end) #hud .timer.reading { animation: none; --p: 100; color: var(--cream); font-size: 11px; line-height: 1.1; text-align: center; }   /* "Read 3": the reading time, a full ring */
+body:not(.no-hud):not(.phase-end) #hud .timer.low { color: var(--urgent); }
+
+/* ---- 3. after the answer: one big word ---- */
+.wait { opacity: 0; visibility: hidden; }                            /* hidden but they keep their place, so nothing jumps when the find is out of the ground */
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word { margin: var(--sp-4) 0 0; font: 700 var(--px-4)/1 var(--font-display); text-transform: uppercase; color: var(--cream); text-shadow: var(--px) var(--px) 0 var(--ink), var(--halo-q); overflow-wrap: anywhere; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="uncommon"] { color: var(--ok); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="rare"], body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"] { color: var(--gold-lit); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="none"] { color: var(--cream-dark); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word:not(.wait) { animation: word-pop 0.35s steps(5) both; }
+@keyframes word-pop { from { transform: scale(1.5); opacity: 0; } 40% { opacity: 1; } to { transform: none; opacity: 1; } }
+body:not(.no-hud):not(.phase-end) main > .points { margin: var(--sp-1) 0 var(--sp-3); font: 700 var(--px-3)/1 var(--font-display); color: var(--gold); text-shadow: var(--px) var(--px) 0 var(--ink), var(--halo-q); }
+body:not(.no-hud):not(.phase-end) main > .explain { max-width: 28rem; margin: 0 auto; font-size: var(--fs-small); line-height: var(--lh-body); color: var(--cream); opacity: 0.92; }
+body:not(.no-hud):not(.phase-end) main > .rarity-line, body:not(.no-hud):not(.phase-end) main > .dig { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* still there for screen readers, not drawn: the big word says it */
+.phase-feedback main { display: block; }
+.phase-feedback .points, .phase-feedback .points + p, .phase-feedback .points + p + p { order: 0; border: 0; padding: 0; }
+body.phase-feedback:not(.no-hud):not(.phase-end) h2 { font: 400 var(--fs-small)/var(--lh-heading) var(--font-text); color: var(--cream); margin: 0 0 var(--sp-1); }   /* the question shrinks after the answer */
+body:not(.no-hud):not(.phase-end) main > button {                                    /* Next replaces the answer bar */
+  position: fixed; left: var(--col-l); right: var(--col-r); bottom: var(--bar-bottom); width: auto; height: var(--bar-h); margin: 0; text-shadow: none;
+}
+
+body:not(.no-hud):not(.phase-end) #scene .react { display: none; }                  /* the big word replaces the floating reaction label over the pit */
+
+@media (prefers-reduced-motion: reduce) {
+  body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word:not(.wait) { animation: none; }
+  body:not(.no-hud):not(.phase-end) #hud .timer { animation: none; }
+}
