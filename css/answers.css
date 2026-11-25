@@ -54,3 +54,20 @@ body.phase-end.no-hud main { top: 0; bottom: 0; margin-block: auto; height: fit-
 
 /* The rarity words under the finds on the bench were too small to read on a phone: 13 px, a darker chip. */
 #scene .slot-label { font-size: calc(13px / var(--s, 3)); letter-spacing: -0.03em; background: rgba(20, 8, 14, 0.92); }
+
+/* One colour per rarity, clearly different (the kit had cream, green, and the same gold for rare and very rare): common cream, uncommon green, rare blue, very rare purple.
+   Used for the big word and the points after an answer, the labels under the finds on the bench, and the rarity words in the list of all answers. */
+:root { --r-common: #faf6eb; --r-uncommon: #8ee66f; --r-rare: #72c7ff; --r-veryRare: #e38cff; --r-none: #dcc89c; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="common"], body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="common"] ~ .points { color: var(--r-common); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="uncommon"], body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="uncommon"] ~ .points { color: var(--r-uncommon); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="rare"], body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="rare"] ~ .points { color: var(--r-rare); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"], body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"] ~ .points { color: var(--r-veryRare); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="none"], body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="none"] ~ .points { color: var(--r-none); }
+#scene .slot-label[data-key="common"] { color: var(--r-common); }
+#scene .slot-label[data-key="uncommon"] { color: var(--r-uncommon); }
+#scene .slot-label[data-key="rare"] { color: var(--r-rare); }
+#scene .slot-label[data-key="veryRare"] { color: var(--r-veryRare); }
+.answer-item.common .answer-rarity { color: var(--r-common); }
+.answer-item.uncommon .answer-rarity { color: var(--r-uncommon); }
+.answer-item.rare .answer-rarity { color: var(--r-rare); }
+.answer-item.veryRare .answer-rarity { color: var(--r-veryRare); }

@@ -143,7 +143,7 @@ export function mountScene(parent = document.body, opts = {}) {
     node.style.setProperty("--row", row);
     node.style.setProperty("--n", frames);
     node.style.setProperty("--n1", frames - 1);
-    node.style.setProperty("--dur", `${seconds}s`);
+    node.style.setProperty("--dur", `${seconds / speed}s`);
     node.style.setProperty("--last", mode === "loop" ? 0 : frames - 1);
     node.classList.remove("once", "loop", "still");
     void node.offsetWidth;                                    // restart the CSS animation
@@ -153,7 +153,7 @@ export function mountScene(parent = document.body, opts = {}) {
   const hold = (node) => { node.classList.remove("once", "loop"); node.classList.add("still"); };
   const slide = (from, seconds) => {                           // the machine rolls in from the left
     machineWrap.style.setProperty("--from", `${from}px`);
-    machineWrap.style.setProperty("--slide", `${seconds}s`);
+    machineWrap.style.setProperty("--slide", `${seconds / speed}s`);
     machineWrap.classList.remove("slide-in");
     void machineWrap.offsetWidth;
     delay(machineWrap);
@@ -162,7 +162,7 @@ export function mountScene(parent = document.body, opts = {}) {
 
   const leave = (row, seconds) => {                           // the machine drives away to the left (the work is done)
     machineWrap.style.setProperty("--to", "-120px");
-    machineWrap.style.setProperty("--slide", `${seconds}s`);
+    machineWrap.style.setProperty("--slide", `${seconds / speed}s`);
     machineWrap.classList.remove("slide-in", "slide-out");
     void machineWrap.offsetWidth;
     delay(machineWrap);
@@ -172,6 +172,8 @@ export function mountScene(parent = document.body, opts = {}) {
   };
 
   let timers = [];
+  const DIG_SPEED = 1.25;                                      // the dig beats run this much faster than the times written below
+  let speed = 1;                                               // DIG_SPEED while a dig beat plays, 1 in idle and in the quiet start
   let cam = null;                                             // the camera push-in { step, left, right }: whole zoom steps added to the zoom (null = normal view); see camPlace() and paint()
   let hushed = false;
   let settleFn = null;
@@ -179,6 +181,7 @@ export function mountScene(parent = document.body, opts = {}) {
   let clock = 0;                                              // seconds already elapsed in the beat (only used when opts.seek is set: screenshots, tests)
   const delay = (node) => { node.style.animationDelay = clock ? `-${clock}s` : ""; };
   const later = (fn, seconds) => {
+    seconds /= speed;
     if (opts.seek != null) {                                  // seek mode: run what is due by now, started late by the right amount, and skip the rest
       if (seconds <= opts.seek) { clock = opts.seek - seconds; fn(); clock = 0; }
       return;
@@ -306,6 +309,7 @@ export function mountScene(parent = document.body, opts = {}) {
     }, 4 + Math.random() * 5);
   }
   function idle() {
+    speed = 1;
     const wasFeedback = phaseWas;
     urgent(false);
     celebrate(false);
@@ -321,6 +325,7 @@ export function mountScene(parent = document.body, opts = {}) {
 
   // a quiet start beat for the first question: he looks around and settles his hat (not a dig)
   function ready() {
+    speed = 1;
     urgent(false);
     celebrate(false);
     flush();
@@ -339,6 +344,7 @@ export function mountScene(parent = document.body, opts = {}) {
   // ---- after an answer ----
   // Every beat is a list of [seconds, action]; settle() runs the end state directly. Good answers get a build-up: rare about 1.9 s, very rare about 2.5 s.
   function dig(key, label, benchLabel, findName) {
+    speed = DIG_SPEED;
     urgent(false);
     celebrate(false);
     flush();
@@ -414,63 +420,61 @@ export function mountScene(parent = document.body, opts = {}) {
     // push(step, t, left, right): at t seconds the camera is `step` whole zoom steps closer, keeping stage x left..right on screen (the man from `left`, the pit to `right`); step 0 = back to normal
     const push = (step, t, left = 16, right = 148) => later(() => { cam = step ? { step, left, right } : null; paint(); if (step) { sound.play("thud"); root.classList.add("dim", "dim-tight"); } }, t);   // the closing vignette starts together with the zoom (our change)
     const beats = (from, to, t0, gap) => { let n = 0; for (let t = t0; t < to; t += gap, n++) { const i = n; later(() => { sound.play("heartbeat", i); if (opts.seek == null) { root.classList.add("beat"); setTimeout(() => root.classList.remove("beat"), 120); } }, t); gap = Math.max(gap * 0.93, 0.5); } };
-    const breath = (t, seconds) => later(() => { hushed = true; sound.hush(seconds); vignetteOff(); root.classList.add("dim", "dim-tight"); }, t);
+    const breath = (t, seconds) => later(() => { hushed = true; sound.hush(seconds / speed); vignetteOff(); root.classList.add("dim", "dim-tight"); }, t);
 
     // v8: every good find is shown for a moment: it is lifted out, held up beside him (or hanging from the winch) with a small name tag, then it goes to the bench.
     const SHOW = 1.1;                                           // seconds a find is held up
-    if (k === "rare") {                                         // about 8 s: the digger scoops five times, the camera pushes in, the digger leaves, a held breath, the crown
+    if (k === "rare") {                                         // about 6.5 s (5.2 s at DIG_SPEED): he strikes something hard, the hand winch hauls earth OUT of the trench, the crown is hoisted out
       vignetteOn(false);
       sound.play("swell-rare");
-      machine.hidden = false;
-      slide(-90, 0.35);
-      play(machine, MACHINE.digger_drive, 0.4, "loop");
-      play(man, MAN.watch_digger, 0.8, "loop");
-      const CYC = 0.7;
-      later(() => { play(machine, MACHINE.digger_dig, CYC, "loop"); rumble(true); }, 0.4);
-      for (let i = 0; i < 4; i++) {
-        const t = 0.4 + i * CYC;
-        later(() => sound.play("dig-digger"), t);
-        later(() => { fx("puff", 112, 56, 0.5); fx("soil", 104, 60, 0.45); }, t + 0.3);
-        later(() => { fx("soil", 120, 58, 0.45); if (i % 2) { fx("clink", 100, 54, 0.3); sound.play("clink"); } }, t + 0.5);
-      }
-      push(1, 1.8, 16, 148);                                         // one zoom step closer, around the pit (and the vignette closes with it); he stands at the far left (x 18) watching the digger
-      beats(0, 3.9, 1.2, 0.85);
-      later(() => { rumble(false); leave(MACHINE.digger_drive, 0.35); fx("puff", 108, 62, 0.5); }, 3.25);
-      breath(3.4, 1.5);                                         // everything goes quiet, the vignette closes round the pit
-      later(() => play(man, MAN.peer, 0.9, "once"), 3.45);      // he steps up to the trench and looks in
-      later(() => { vignetteOn(false); play(man, MAN.lean_crown, 0.8, "once"); }, 4.55);
-      later(() => { revealFind(0.4); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 112, 62, 0.5); }, 4.95);
-      later(carryFind, 5.2);                                    // the crown rises with his hands ...
-      push(0, 5.2);                                             // ... and the camera pulls back at once
-      later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 5.5);
-      later(() => putPending(true), 5.5 + SHOW);                // after the show the crown flies to the bench
-    } else if (k === "veryRare") {                              // about 10.5 s: he strikes something hard, a winch hauls earth OUT of the trench, two zoom steps, a held breath, the statue is lifted out
-      vignetteOn(true);
-      sound.play("swell-veryRare");
-      strokes("pickaxe", 0.2, 2);                               // two strikes: the second one rings on something hard
-      push(1, 1.5, 48, 148);
-      later(() => { winch.hidden = false; play(winch, WINCH.rest, 1, "once"); hold(winch); fx("puff", 90, 80, 0.5); fx("puff", 152, 78, 0.5); sound.play("thud"); }, 1.6);   // the rig stands up beside the trench
-      later(() => { play(man, MAN.crank, 0.8, "loop"); rumble(true); }, 1.7);
+      strokes("pickaxe", 0.2, 1);                               // one strike: it rings on something hard
+      push(1, 1.1, 48, 148);                                    // one zoom step closer (and the vignette closes with it)
+      later(() => { winch.hidden = false; play(winch, WINCH.rest, 1, "once"); hold(winch); fx("puff", 90, 80, 0.5); fx("puff", 152, 78, 0.5); sound.play("thud"); }, 1.0);   // the rig stands up beside the trench
+      later(() => { play(man, MAN.crank, 0.8, "loop"); rumble(true); }, 1.1);
       const W = 1.0;                                            // one bucket per second: down, filled, up, tipped over the back of the trench, back
-      for (let i = 0; i < 3; i++) {
-        const t = 1.9 + i * W;
+      for (let i = 0; i < 2; i++) {
+        const t = 1.3 + i * W;
         if (i === 0) later(() => play(winch, WINCH.cycle, W, "loop"), t);
         later(() => sound.play("dig-digger"), t);
         later(() => { fx("soil", 119, 62, 0.45); fx("puff", 124, 66, 0.5); }, t + 0.15);              // earth leaves the trench: from the pit floor ...
         later(() => { fx("soil", 119, 20, 0.45); fx("puff", 126, 22, 0.5); }, t + 0.62);                // ... and tips behind it, onto the spoil heaps
         if (i % 2) later(() => { fx("clink", 112, 60, 0.3); sound.play("clink"); }, t + 0.3);
       }
-      push(2, 3.2, 62, 148);                                    // a second zoom step (from here he works at the trench, x 63 and up; the last rim pixels may clip on a narrow phone)
-      beats(0, 6.0, 2.4, 0.9);
-      later(() => { rumble(false); play(winch, WINCH.rest, 1, "once"); hold(winch); }, 5.05);
-      breath(5.1, 1.4);
-      later(() => play(man, MAN.peer, 0.9, "once"), 5.15);
-      later(() => vignetteOn(true), 6.3);
-      later(() => { revealFind(0.45); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 6.5);
-      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 7.0);   // the hook takes the statue and hoists it out
-      push(0, 7.3);                                             // the camera pulls back as it rises
-      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 7.7);
-      later(() => putPending(true), 7.7 + SHOW + 0.2);
+      beats(0, 4.0, 2.0, 0.9);
+      later(() => { rumble(false); play(winch, WINCH.rest, 1, "once"); hold(winch); }, 3.3);
+      breath(3.35, 1.1);                                        // everything goes quiet, the vignette closes round the pit
+      later(() => play(man, MAN.peer, 0.9, "once"), 3.4);       // he steps up to the trench and looks in
+      later(() => { revealFind(0.4); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 4.3);
+      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 4.7);   // the hook takes the crown and hoists it out
+      push(0, 5.0);                                             // the camera pulls back as it rises
+      later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 5.4);
+      later(() => putPending(true), 5.4 + SHOW);
+    } else if (k === "veryRare") {                              // about 8.3 s (6.6 s at DIG_SPEED): he strikes something hard, the DIGGER rolls in and scoops, then the winch hoists the statue out
+      vignetteOn(true);
+      sound.play("swell-veryRare");
+      strokes("pickaxe", 0.2, 2);                               // two strikes: the second one rings on something hard
+      later(() => { machine.hidden = false; slide(-90, 0.35); play(machine, MACHINE.digger_drive, 0.4, "loop"); play(man, MAN.watch_digger, 0.8, "loop"); sound.play("rumble"); }, 1.6);   // the digger rolls in, he waves it on
+      const CYC = 0.7;
+      later(() => { play(machine, MACHINE.digger_dig, CYC, "loop"); rumble(true); }, 2.0);
+      for (let i = 0; i < 3; i++) {
+        const t = 2.0 + i * CYC;
+        later(() => sound.play("dig-digger"), t);
+        later(() => { fx("puff", 112, 56, 0.5); fx("soil", 104, 60, 0.45); }, t + 0.3);
+        later(() => { fx("soil", 120, 58, 0.45); if (i % 2) { fx("clink", 100, 54, 0.3); sound.play("clink"); } }, t + 0.5);
+      }
+      push(1, 2.1, 16, 148);                                    // the first zoom step while the digger works (he stands at the far left, x 18)
+      beats(0, 6.4, 2.4, 0.9);
+      later(() => { rumble(false); leave(MACHINE.digger_drive, 0.35); fx("puff", 108, 62, 0.5); }, 4.15);   // the digger drives away
+      later(() => { winch.hidden = false; play(winch, WINCH.rest, 1, "once"); hold(winch); fx("puff", 90, 80, 0.5); fx("puff", 152, 78, 0.5); sound.play("thud"); }, 4.4);   // the rig stands up beside the trench
+      push(2, 4.5, 62, 148);                                    // a second zoom step (from here he works at the trench, x 63 and up; the last rim pixels may clip on a narrow phone)
+      breath(4.6, 1.4);
+      later(() => play(man, MAN.peer, 0.9, "once"), 4.65);      // he steps up to the trench and looks in
+      later(() => vignetteOn(true), 5.5);
+      later(() => { revealFind(0.45); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 5.8);
+      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 6.3);   // the hook takes the statue and hoists it out
+      push(0, 6.6);                                             // the camera pulls back as it rises
+      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 7.0);
+      later(() => putPending(true), 7.0 + SHOW + 0.2);
     } else {                                                    // common 4.5 s, uncommon 5.5 s, none 4 s: the tool works several times, he leans in and looks, brushes the find clean and holds it up
       const t = strokes(d.tool);
       const P = k === "none" ? 0.5 : 0.6;                       // the pause where he looks
