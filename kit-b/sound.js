@@ -111,6 +111,16 @@ export function createSound() {
     brushoff: (t) => [0, 0.12, 0.24, 0.36, 0.48].forEach((d) => noise(t, 0.08, { freq: 4000, filter: "highpass", vol: 0.07, delay: d })),
     rumble: (t) => { noise(t, 0.7, { freq: 120, filter: "lowpass", vol: 0.35 }); tone(t, 38, 0.7, { type: "sine", to: 52, vol: 0.25 }); },
     next: (t) => tone(t, 520, 0.03, { vol: 0.1 }),
+    start: (t) => { noise(t, 0.28, { freq: 400, to: 3200, q: 1.2, vol: 0.09 }); arp(t + 0.04, [N.C4, N.E4, N.G4, N.C5, N.E5], 0.06, { vol: 0.13, type: "triangle" }); tone(t + 0.34, N.C6, 0.22, { vol: 0.1 }); },   // the first press of Start: a bright rising run
+    lift: (t, n = 0) => {                                                                       // the find comes out of the ground; the rarer it is, the more glitter
+      if (n === 4) { tone(t, 200, 0.2, { type: "triangle", to: 110, vol: 0.14 }); noise(t, 0.14, { freq: 500, filter: "lowpass", vol: 0.12 }); return; }   // nothing: a dull plop
+      noise(t, 0.4, { freq: 500, to: 2600, q: 1.5, vol: 0.1 });                                  // the pull: a rising swish
+      if (n >= 2) [0, 0.1, 0.2].forEach((d) => tone(t, 1200, 0.03, { type: "square", vol: 0.05, delay: d }));   // the ratchet of the winch
+      const glint = [N.G5, N.C6, N.E6, N.G6][Math.min(n, 3)];
+      tone(t, glint, 0.14, { vol: 0.12, delay: 0.3 });
+      tone(t, glint * 1.5, 0.12, { vol: 0.08, delay: 0.38 });
+      if (n === 3) arp(t + 0.3, [N.C6, N.E6, N.G6, N.C7], 0.05, { vol: 0.1 });
+    },
     finish: (t) => { arp(t, [N.C5, N.E5, N.G5, N.C6], 0.1, { vol: 0.14 }); tone(t, N.C3, 0.5, { type: "triangle", vol: 0.16 }); tone(t, N.C6, 0.4, { vol: 0.12, delay: 0.3 }); },
   };
 

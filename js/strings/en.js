@@ -31,11 +31,11 @@ export const t = {
   youDug: (tool, find) => `You dug up a ${find.toLowerCase()} with a ${tool.toLowerCase()}.`,
   scoreLabel: (n) => `Score ${n}`,
   // The one big word after an answer (2d kit, phone layout).
-  rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "Nothing" },
+  rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "One in a Historillion", none: "Nothing" },
   // Floating text over the dig site after an answer (2d kit).
   // The word under each find on the bench (2d kit).
   benchLabel: { none: "No\nfind", common: "Common", uncommon: "Un-\ncommon", rare: "Rare", veryRare: "Very\nrare" }, // \n = a line break under the find
-  reaction: { none: "Nothing", common: "Common", uncommon: "Nice!", rare: "Rare find!", veryRare: "One in a million!" },
+  reaction: { none: "Nothing", common: "Common", uncommon: "Nice!", rare: "Rare find!", veryRare: "One in a Historillion!" },
   soundLabel: "Sound",
   totalLabel: "points",
   pointsShort: "pts",

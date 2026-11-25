@@ -77,7 +77,7 @@ function intro(day) {
     el("h1", { textContent: t.title }),
     el("p", { textContent: t.tagline }),
     el("p", { textContent: t.howScoring }),
-    el("button", { textContent: t.start, onclick: () => ask(day, 0, []) }),
+    el("button", { textContent: t.start, onclick: () => { scene?.sound.play("start"); ask(day, 0, []); } }),
   );
 }
 

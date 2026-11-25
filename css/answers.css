@@ -71,3 +71,7 @@ body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="
 .answer-item.uncommon .answer-rarity { color: var(--r-uncommon); }
 .answer-item.rare .answer-rarity { color: var(--r-rare); }
 .answer-item.veryRare .answer-rarity { color: var(--r-veryRare); }
+
+/* "One in a Historillion" is long: smaller than the other big words so it fits a phone (33 px, 44 px from 700 px wide). */
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"] { font-size: var(--px-2, 33px); line-height: 1.1; }
+@media (min-width: 700px) { body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"] { font-size: var(--px-3, 44px); } }

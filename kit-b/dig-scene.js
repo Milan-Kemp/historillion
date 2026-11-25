@@ -423,6 +423,7 @@ export function mountScene(parent = document.body, opts = {}) {
     const breath = (t, seconds) => later(() => { hushed = true; sound.hush(seconds / speed); vignetteOff(); root.classList.add("dim", "dim-tight"); }, t);
 
     // v8: every good find is shown for a moment: it is lifted out, held up beside him (or hanging from the winch) with a small name tag, then it goes to the bench.
+    const RANK = { common: 0, uncommon: 1, rare: 2, veryRare: 3, none: 4 };    // for the pitch and the glitter of the lift sound
     const SHOW = 1.1;                                           // seconds a find is held up
     if (k === "rare") {                                         // about 6.5 s (5.2 s at DIG_SPEED): he strikes something hard, the hand winch hauls earth OUT of the trench, the crown is hoisted out
       vignetteOn(false);
@@ -445,7 +446,7 @@ export function mountScene(parent = document.body, opts = {}) {
       breath(3.35, 1.1);                                        // everything goes quiet, the vignette closes round the pit
       later(() => play(man, MAN.peer, 0.9, "once"), 3.4);       // he steps up to the trench and looks in
       later(() => { revealFind(0.4); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 4.3);
-      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 4.7);   // the hook takes the crown and hoists it out
+      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); sound.play("lift", RANK.rare); }, 4.7);   // the hook takes the crown and hoists it out
       push(0, 5.0);                                             // the camera pulls back as it rises
       later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 5.4);
       later(() => putPending(true), 5.4 + SHOW);
@@ -471,7 +472,7 @@ export function mountScene(parent = document.body, opts = {}) {
       later(() => play(man, MAN.peer, 0.9, "once"), 4.65);      // he steps up to the trench and looks in
       later(() => vignetteOn(true), 5.5);
       later(() => { revealFind(0.45); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 5.8);
-      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); }, 6.3);   // the hook takes the statue and hoists it out
+      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); sound.play("lift", RANK.veryRare); }, 6.3);   // the hook takes the statue and hoists it out
       push(0, 6.6);                                             // the camera pulls back as it rises
       later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 7.0);
       later(() => putPending(true), 7.0 + SHOW + 0.2);
@@ -483,7 +484,7 @@ export function mountScene(parent = document.body, opts = {}) {
       later(() => { play(man, MAN.brushoff, 0.7, "once"); fx("puff", 118, 70, 0.5); sound.play("brushoff"); }, B);
       later(() => { revealFind(0.5); sound.play(`reveal-${k}`); }, B + 0.1);
       later(() => fx("puff", 112, 66, 0.5), B + 0.4);
-      later(carryFind, B + 0.75);                               // he lifts it out and holds it up beside him
+      later(() => { carryFind(); sound.play("lift", RANK[k]); }, B + 0.75);   // he lifts it out and holds it up beside him
       later(() => { play(man, MAN[`rx_${k}`], 0.5, "once"); showLabel(); showTag(); }, B + 0.95);
       later(() => putPending(true), B + 0.95 + SHOW);
     }
