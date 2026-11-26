@@ -30,6 +30,10 @@ export const t = {
   // The dig scene is decorative (aria-hidden); this sentence is its text alternative.
   youDug: (tool, find) => `You dug up a ${find.toLowerCase()} with a ${tool.toLowerCase()}.`,
   scoreLabel: (n) => `Score ${n}`,
+  // The cross-section dig (2d kit v11): the score is the depth in metres.
+  depthLabel: (m) => `${m} m`,
+  metres: (m) => `+${m} m`,
+  reached: (m, era) => `You reached ${m} m, ${era}`,
   // The one big word after an answer (2d kit, phone layout).
   rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "One in a Historillion", none: "Nothing" },
   // Floating text over the dig site after an answer (2d kit).
@@ -73,6 +77,7 @@ export const t = {
   howScoring: "Rarer answers earn more points: every time an answer is half as common, it earns 15 more points (max 100).",
   playAgain: "Play again",
   viewResults: "View results",
+  dugToday: (m) => `You dug ${m} m today. A new dig opens every day.`,
   doneToday: (n) => `You dug today: ${n} points. A new dig opens every day.`,
   logbook: (s) => `Streak ${s.streak} · Played ${s.played} · Best ${s.best}${s.top ? ` · One in a Historillion ×${s.top}` : ""}`,
   loadError: "Could not load today's questions.",

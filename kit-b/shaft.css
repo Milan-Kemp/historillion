@@ -1,0 +1,24 @@
+/* Historillion, 2D kit v11: the cross-section dig (shaft-scene.js). Load after theme.css and layout-phone.css. */
+#scene.shaft { background: #1e1846; }
+#scene.shaft.rumble { animation: srumble 0.12s steps(2) infinite; }                    /* rare and very rare: the ground shakes 2 px */
+@keyframes srumble { 50% { translate: 2px 1px; } }
+#scene .sworld { position: absolute; left: 0; top: 0; width: 640px; height: 414px; transform-origin: 0 0; }
+#scene .sground { position: absolute; left: 0; top: 0; image-rendering: pixelated; }
+#scene .sman, #scene .sfinds { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#scene .sfind { position: absolute; width: 24px; height: 30px; background: url("scene/slots.png") no-repeat calc(var(--k, 0) * -24px) 0 / 120px 30px; image-rendering: pixelated; }
+#scene .sfind.pop { animation: find-pop 0.4s steps(4) both; }                         /* the find comes out of the wall */
+@keyframes find-pop { from { transform: scale(0); } 60% { transform: scale(1.4); } to { transform: none; } }
+/* the layer names: real text on a dark chip, 12 px on screen whatever the zoom, right of the shaft, on a ruler; the layer you are in turns gold */
+#scene .era-label { position: absolute; left: 352px; max-width: 34px; white-space: normal; width: max-content; font: 700 calc(12px / var(--s, 3)) / 1.15 var(--font-text); text-transform: uppercase; letter-spacing: 0.02em;
+  color: var(--cream); background: rgba(14, 8, 18, 0.82); padding: calc(2px / var(--s, 3)) calc(5px / var(--s, 3)); border-radius: calc(3px / var(--s, 3)); }
+#scene .era-label.here { color: var(--gold); }
+#scene .era-label.bottom { color: var(--gold-lit); }
+/* the depth meter at the side (like Krillion's metres): the metres and the layer */
+.depth-meter { position: fixed; z-index: 2; right: var(--col-r, 12px); display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding: 6px 10px; pointer-events: none;
+  background: rgba(14, 8, 18, 0.8); border-radius: 8px; text-align: right; }
+.depth-meter[hidden] { display: none; }
+.depth-meter b { font: 700 var(--px-2)/1 var(--font-display); color: var(--gold); }
+.depth-meter span { font: 700 var(--fs-micro)/1.2 var(--font-text); color: var(--cream); text-transform: uppercase; letter-spacing: 0.04em; }
+.depth-meter.new { animation: meter-new 0.5s steps(4); }                                /* a new layer: the meter blinks once */
+@keyframes meter-new { 50% { background: rgba(140, 84, 28, 0.95); } }
+@media (prefers-reduced-motion: reduce) { #scene.shaft.rumble, #scene .sfind.pop, .depth-meter.new { animation: none; } }

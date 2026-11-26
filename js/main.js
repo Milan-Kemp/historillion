@@ -7,6 +7,8 @@ import { loadDays, saveDay, stats } from "./progress.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
+// The 2d kit shows the cross-section dig (v11, deeper = rarer); ?scene=pit shows the earlier pit with the archaeologist and the bench.
+const SHAFT = KIT === "kit-b" && new URLSearchParams(location.search).get("scene") !== "pit";
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
 // How see-through the panels are. Default: very light glass. ?glass=clear (no background, no blur), ?glass=soft (the previous light glass),
@@ -23,12 +25,23 @@ if (KIT === "kit-b") {
   layout.rel = "stylesheet";
   layout.href = "kit-b/layout-phone.css";
   document.getElementById("theme").after(layout);
-  await new Promise((done) => { layout.onload = layout.onerror = done; });
+  const sheets = [layout];
+  if (SHAFT) { // shaft.css comes right after layout-phone.css
+    const shaftCss = document.createElement("link");
+    shaftCss.rel = "stylesheet";
+    shaftCss.href = "kit-b/shaft.css";
+    layout.after(shaftCss);
+    sheets.push(shaftCss);
+  }
+  await Promise.all(sheets.map((l) => new Promise((done) => { l.onload = l.onerror = done; })));
 }
 const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
-const scene = kit.mountScene?.(document.body, { benchLabels: t.benchLabel });
+// DIG (which find goes with which rarity) and museum() still come from dig-scene.js; the scene itself from shaft-scene.js when SHAFT.
+const shaft = SHAFT ? await import(`../${KIT}/shaft-scene.js`) : null;
+const scene = (shaft ?? kit).mountScene?.(document.body, { benchLabels: t.benchLabel });
+const scoreText = (n) => (shaft ? t.depthLabel(n) : t.scoreLabel(n)); // in the cross-section the score IS the depth
 // The new end screen (curve, ranks, finds list) only exists in the 2d kit.
 const endKit = scene ? await import(`../${KIT}/end-screen.js`) : null;
 
@@ -84,7 +97,7 @@ function intro(day) {
     const results = today.map((r) => ({ ...r, typed: r.typed ?? "", dig: t.dig[r.key] }));
     show(
       el("h1", { textContent: t.title }),
-      el("p", { textContent: t.doneToday(results.reduce((x, r) => x + r.pts, 0)) }),
+      el("p", { textContent: (shaft ? t.dugToday : t.doneToday)(results.reduce((x, r) => x + r.pts, 0)) }),
       ...logbook,
       ...(endKit ? [endKit.nextDig({ label: t.nextDig })] : []),
       el("button", { textContent: t.viewResults, onclick: () => end(day, results, true) }),
@@ -110,7 +123,7 @@ function ask(day, i, results) {
   const msg = el("p", { className: "msg", role: "status" }); // live region: screen readers announce the hint
   const total = results.reduce((s, r) => s + r.pts, 0);
   if (scene) {
-    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(total), timer, soundLabel: t.soundLabel });
+    scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: scoreText(total), timer, soundLabel: t.soundLabel });
     // The "picks up his shovel" beat looks like digging for no reason, so only the first question gets it.
     if (i === 0) { scene.newDay(); scene.ready(); } else scene.idle();
     show(el("h2", { textContent: question.prompt }), msg, form);
@@ -189,10 +202,11 @@ function feedback(day, i, results) {
   const r = results[i];
   const last = i === day.questions.length - 1;
   const total = results.reduce((s, x) => s + x.pts, 0);
-  const hud = (score) => scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: t.scoreLabel(score), soundLabel: t.soundLabel });
+  let dug = null;
+  const hud = (score) => scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: scoreText(score), soundLabel: t.soundLabel });
   if (scene) {
     hud(total - r.pts); // the points are not counted before the find is out of the ground
-    scene.dig(r.key, t.reaction[r.key], t.benchLabel[r.key]);
+    dug = shaft ? scene.dig(r.key, r.pts) : scene.dig(r.key, t.reaction[r.key], t.benchLabel[r.key]);
   }
   const typed = r.typed.trim() || "-";
   const next = el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(day, results) : ask(day, i + 1, results)) });
@@ -206,13 +220,21 @@ function feedback(day, i, results) {
       el("h2", { textContent: r.prompt }),
       el("p", { className: "your-answer", textContent: `${t.yourAnswer}: ${typed}${counted}` }),
       word,
-      el("p", { className: "points wait", textContent: `+${r.pts}` }),
+      el("p", { className: "points wait", textContent: shaft ? t.metres(r.pts) : `+${r.pts}` }),
       el("p", { className: "rarity-line wait", textContent: rarityLine }),
       el("p", { className: "dig wait", textContent: t.youDug(r.dig.tool, r.dig.find) }),
       el("p", { className: "explain wait", textContent: r.text }),
       next,
     );
-    revealWhenDug(app.querySelectorAll(".rarity-word, .points, .rarity-line, .dig, .explain"), () => hud(total));
+    const waitingNodes = app.querySelectorAll(".rarity-word, .points, .rarity-line, .dig, .explain");
+    if (shaft) {
+      waiting?.disconnect();
+      dug.then(() => {
+        if (!word.isConnected) return; // the player already went on with Next
+        waitingNodes.forEach((n) => n.classList.remove("wait"));
+        hud(total);
+      });
+    } else revealWhenDug(waitingNodes, () => hud(total));
     return;
   }
   show(
@@ -246,11 +268,13 @@ function end(day, results, review = false) {
   waiting?.disconnect();
   scene?.hud(null);
   scene?.reset();
-  if (review) scene?.setFinds(results.map((r) => DIG[r.key].find)); // a stored day: its finds back on the bench
+  if (review && shaft) scene.setDay(results.map((r) => ({ key: r.key, points: r.pts }))); // a stored day: the shaft dug again, without animation
+  else if (review) scene?.setFinds(results.map((r) => DIG[r.key].find)); // a stored day: its finds back on the bench
   else scene?.sound.play("finish");
   const total = results.reduce((s, r) => s + r.pts, 0);
   const days = REPLAY || review ? loadDays() : saveDay(day.date, results);
-  const logbook = el("p", { className: "logbook", textContent: t.logbook(stats(days, day.date)) });
+  const st = stats(days, day.date);
+  const logbook = st.played ? [el("p", { className: "logbook", textContent: t.logbook(st) })] : []; // nothing to show before the first stored day (or in ?replay mode)
   const again = REPLAY ? [el("button", { textContent: t.playAgain, onclick: () => location.reload() })] : [];
   if (scene && total >= t.ranks.at(-1).from) scene.celebrate(); // the top rank, "One in a Historillion"
   if (endKit) {
@@ -258,9 +282,9 @@ function end(day, results, review = false) {
     // The curve is an estimate from predicted answer shares (no real players yet); endCurve prints that too.
     const dist = scoreDistribution(day);
     show(
-      el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), String(total)),
-      el("p", { className: "sub", textContent: t.totalLabel }),
-      logbook,
+      el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), shaft ? t.depthLabel(total) : String(total)),
+      el("p", { className: "sub", textContent: shaft ? t.reached(total, shaft.eraAt(total).name) : t.totalLabel }),
+      ...logbook,
       endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve }),
       endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle }),
       resultsList({
@@ -281,7 +305,7 @@ function end(day, results, review = false) {
   ));
   show(
     el("h1", { textContent: `${t.total}: ${total}` }),
-    logbook,
+    ...logbook,
     museum(results.map((r) => ({ find: DIG[r.key].find, label: r.dig.find }))),
     el("table", {},
       el("thead", {}, el("tr", {}, ...[t.questionCol, t.yourAnswer, t.rarityCol, t.findCol, t.pointsCol].map((h) => el("th", { textContent: h })))),

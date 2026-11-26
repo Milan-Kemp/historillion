@@ -34,6 +34,8 @@ npm test
 ## Style kits
 `kit/` is the 8-bit style (default), `kit-b/` the fullscreen 2d style with the animated archaeologist, sound, the kept finds bench and the new end screen. Open `?kit=b`, for example `/?day=2026-12-01&kit=b`. Both have the same hooks, so the choice is one folder. When one wins, delete the other and the `KIT` lines at the top of `js/main.js`. Rules for each style are in `kit/STYLE.md` and `kit-b/STYLE.md`; the 2d kit also has `kit-b/FULLSCREEN.md` (API and notes) and `kit-b/demo.html`.
 
+Two scenes in the 2d kit: the cross-section dig (`kit-b/shaft-scene.js` + `kit-b/shaft.css`, v11: each answer digs the day's shaft deeper by its points, one layer per era, the score is the depth in metres) is the default; add `&scene=pit` for the earlier pit with the archaeologist, the machines and the bench (`kit-b/dig-scene.js`). `DIG` and `museum()` still come from `dig-scene.js` in both.
+
 Panel transparency of the 2d kit (add to the address): default is very light glass, `&glass=soft` the previous light glass, `&glass=clear` no panel background at all, `&glass=classic` the kit's own darker glass.
 
 The 2d kit's phone layout (`kit-b/layout-phone.css`: the question without a box, the answer bar at the bottom, one big rarity word) is loaded by `js/main.js` right after `theme.css`; the 8-bit kit does not use it.

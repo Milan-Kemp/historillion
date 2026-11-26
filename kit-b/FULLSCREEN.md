@@ -1,10 +1,65 @@
-# 2D kit: fullscreen dig scene, v8 (very rare winch, clearer finds with name tag, longer digs)
+# 2D kit, v11: the cross-section dig (deeper = rarer); v10: phone layout
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v8 (this version): the very rare beat hauls earth OUT, clearer finds held up with a name tag, longer build-up
+## v11 (this version): the cross-section dig, deeper = rarer
+
+**One idea:** a side view of the ground, one layer per era, the day's ONE shaft. Each answer digs it deeper by its points (1 point = 1 m, 700 m = the bottom, "One in a Historillion"); the find of that answer stays in the shaft wall at that depth. The total score is the depth.
+New files: **`shaft-scene.js`** (replaces `dig-scene.js`; same top bar, sound and v10 phone layout), **`shaft.css`** (load after `theme.css` and `layout-phone.css`), demo **`shaft.html`** (`?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&day=4` = the first 4 answers already dug, `&still=1`). Old `dig-scene.js`, `demo.html` and their art stay in the kit but are no longer used.
+- **The picture** (drawn in code on one canvas, palette only, crisp whole-pixel zoom 2 to 4): a dusk sky strip, grass, six layers with speckle and pebbles and a wavy boundary (Modern 0 to 100 m, Early modern 100 to 200, Medieval 200 to 320, Roman & Classical 320 to 450, Bronze & Iron Age 450 to 580, Stone Age 580 to 700), bedrock with a glint of gold at 700 m. The shaft (52 px wide, dark, a rope down the left wall), the archaeologist at its bottom, the finds in the left wall (the bench sprites from v9: shard, coin, crown, statue, rock), a ruler on the right with the layer names (12 px on screen, the current layer in gold), and the **depth meter** at the side, level with the bottom of the shaft ("277 m" + "MEDIEVAL"; it blinks when you reach a new layer).
+- **Removed:** tools per rarity, machines, winch, props, bench, floating label, zoom camera, name tag.
+- **The beat** (`scene.dig(key, points)`, about 1.5 to 3 s): he swings the pickaxe, the shaft goes down by the points and the camera follows (the bottom of the shaft stays at 60 % of the free area): common a short step that slows to a stop (about 1 s), rare and very rare faster swings, a rumble and a long drop that speeds up (up to 2.1 s); a "layer" sound and the meter blink at every new era; then the find pops out of the wall, his reaction, the reveal sound, and the **Promise resolves**: that is the moment to remove `.wait`. A key or a tap ends it at once; reduced motion: the end state at once.
+- **Intro and end screen** (`hud(null)`): the whole shaft of the day, its bottom near the bottom of the screen, behind the panel.
+
+### The exact edits in `js/main.js`
+- Import `import { mountScene, eraAt, ERAS } from "../kit-b/shaft-scene.js";` instead of `dig-scene.js`, and add `<link rel="stylesheet" href="kit-b/shaft.css">` after `layout-phone.css`.
+- A new game: `scene.newDay()` (as before). "View results" of a stored day: `scene.setDay(results.map((r) => ({ key: r.key, points: r.pts })))` instead of `setFinds`.
+- After an answer: replace `scene.dig(key, label, benchLabel)` and your reveal timer with `scene.dig(key, pts).then(() => resultEls.forEach((n) => n.classList.remove("wait")));` (`key` = common | uncommon | rare | veryRare | none, `pts` = the points of that answer).
+- Top bar: `score: `${scene.depth} m`` (or keep the points: they are the same number).
+- End screen: the big total can read `${total} m` with `t.reached(total, eraAt(total).name)` under it; `scene.celebrate()` for 640+ as before.
+- Nothing else in the flow changes: reading time, 25 s, typo hint, logbook, end screen sections, `?glass=`, sounds (new: `layer`).
+### `js/strings/en.js`
+`reached: (m, era) => `You reached ${m} m, ${era}``, `metres: (m) => `+${m} m`` for the points line under the big word; the layer names live in `ERAS` (export) if you want them in en.js.
+
+### Not checked in v11
+Real phones and Safari; 375 x 470 with the keyboard; the end screen on a phone shows only the bottom of the shaft behind the panel (the panel is tall); contrast of the layer labels was not measured (cream on an 82 % dark chip, about 13:1 by the colours); 8 answers at the same depth (only 2 side by side are handled well).
+
+---
+
+## v10: the cleaner phone layout (like Krillion): no question box, answer bar at the bottom, one big word
+
+New file **`2d/layout-phone.css`** (load it AFTER `theme.css`) and a new `fit()` / `camPlace()` / `paint()` block in `dig-scene.js`. Everything is scoped to `body:not(.no-hud):not(.phase-end)`: the intro and the end screen keep their centred panel. The side layout is gone (on wide screens everything stays centred in a 30rem column).
+1. **The question without a box**: big text (`h2`, 22 px display, 33 px from 700 px wide) straight over the scene under the top bar, a full dark outline and glow on every letter (`--halo-q`) and a very soft dark fade from the top of the screen to just under the question (`main::before`). Measured on the real scene (`_build/contrast7.py default`, 375 x 812, 430 x 932, 462 x 840, 1366 x 650, 1896 x 930, ask / feedback / rare): question and big word (cream) 18:1 against the outline, at least 6.1:1 even 2 px out; gold 8.7 and 5.8; the small muted lines had up to 3 % of their 2 px halo under 4.5:1, so they are now cream (92 %) instead of muted cream. The green timer digits measured as outliers (the ring is not hidden by my tool), not a text problem.
+2. **The answer bar at the bottom**: `main > form` is fixed at the bottom (56 px tall, above the on-screen keyboard: `--kb`, set first in `fit()` from `visualViewport`), the **round timer** (a conic ring that drains in 20 steps, the seconds in the middle; `.timer.reading` = a full ring with "Read 3" in small type) sits next to it, the hint `p.msg` is fixed directly above the bar (hidden while empty). On the feedback screen the **Next** button replaces the bar.
+3. **One big word**: `p.rarity-word[data-key]` (55 px display, uppercase, cream / green / gold / muted by rarity, a stepped pop-in) with `p.points` ("+30", 44 px gold) under it and `p.explain` small under that. `.rarity-line` and `.dig` stay in the DOM for screen readers but are not drawn. `.wait` (`opacity: 0; visibility: hidden`) keeps their place, so nothing jumps; before the reveal only the question and "Your answer" show and the dig stays in view. The floating reaction label over the pit is hidden in this layout (the big word replaces it); the name tag of a held-up find stays.
+4. **The free area and the camera**: `fit()` measures the bottom of `main` (the question block) and the top of the fixed bar / hint / Next, and puts the stage in between (zoom 2 to 4, the label rows may slide 8 rows under the question, nothing else); it refits on a MutationObserver / ResizeObserver of `main` and on body class changes. `camPlace({ step, left, right })` keeps the stage window `left..right` (stage x) and rows 20 to 102 inside that area: the largest step that fits, centred, never past an edge; `push(step, t, left = 16, right = 148)` (rare: `push(1, 2.6, 16, 148)`, very rare: `push(1, 1.7, 48, 148)` then `push(2, 4.0, 62, 148)`). Step 0 is exactly what `fit()` computed.
+
+### Changes needed in the game
+- `css`: add `<link rel="stylesheet" href="...layout-phone.css">` after `theme.css`.
+- `js/main.js`, ask screen: `form` and `p.msg` must be direct children of `main` (as now); the timer stays in `#hud` (add class `reading` during the 3 s).
+- `js/main.js`, feedback screen: render `h2`, `p.your-answer`, `p.rarity-word.wait` (`dataset.key = key`, text `t.rarityWord[key]`), `p.points.wait` (text `"+" + points`), `p.rarity-line.wait`, `p.dig.wait`, `p.explain.wait`, then the Next button; when the find is out of the ground remove `.wait` from all five (you already do it for three).
+- `js/strings/en.js`: `rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "Nothing" }` (archaeology names work too).
+- `dig-scene.js`: take the block between "the camera (v10)" and `addEventListener("resize", fit)` and the `push` line (and the three `push(...)` calls) into your file; do not replace your whole file.
+- The bench labels are 11 px here (v9 patch); your 13 px needs wider places or shorter words.
+
+### Not checked in v10
+The question with the real iOS keyboard (375 x 470 is only a short window); 462 x 840 on its own (measured, not looked at); the camera frame by frame in the new layout; a very long question (5+ lines) at 375 x 812; Safari.
+
+---
+
+## v9: clear space between the finds on the bench
+
+Only art and one CSS line changed; **`dig-scene.js` is untouched** (so your `camPlace()`, `paint()`, `push()` + `dim-tight` and shorter timelines are not affected; do not replace your `kit-b/dig-scene.js` with the one in this zip, it is the v8 one).
+- `scene/slots.png`: the five bench sprites are redrawn at most **15 px wide** (x 5 to 19 of the 24 px cell) and the places stay 17 to 18 px apart, so neighbours have 2 to 3 px of air (the crown and statue keep a plinth and a smaller glow, radius 8). Heights are 12 to 24 px. Same file name, same 24 x 30 cells, so nothing in the JS changes. Built by `_build/v2/finds8.py`.
+- `theme.css`, `#scene .slot-label`: font 11 px (was 12 px) and letter-spacing -0.05em, so the widest labels (`COMMON`, `UN-` / `COMMON`) no longer touch at zoom 3 (about 5 px between chips at 375 px wide; before 1 px). `BENCH_SHORT` at zoom 2 is unchanged.
+- Check: `previews/v9-375-bench-crop.png` (7 finds on one row at 375 x 812), `previews/v9-1920-bench.png`.
+Not checked: zoom 2 (short phones) and the 1366 x 650 side layout after this change; your end screen.
+
+---
+
+## v8: the very rare beat hauls earth OUT, clearer finds held up with a name tag, longer build-up
 
 Same hooks and API. `scene.dig(key, label, benchLabel, findName)` has an optional 4th argument (the name on the tag); `mountScene(parent, { findNames: { shard: "..." } })` changes the defaults (`Painted shard`, `Gold coin`, `Jewelled crown`, `Marble head`, `Plain rock`). v7 items 0 to 5 still apply.
 1. **Very rare, redesigned.** No truck any more (it poured earth onto the dig site). A **hand winch** (a gantry of two posts and a beam beside and over the trench, a pulley, a drum with a crank he turns) hauls buckets of earth UP out of the trench (soil and dust rise from the pit floor), tips them over the back of the trench onto the spoil heaps there, and finally its hook takes the statue and hoists it 12 px out of the pit. Nothing covers the trench, the grid, the bench or the man. New art: `scene/winch.png` (176 x 104 cells), `scene/man.png` row `crank`, `reveal`. The digger of the rare beat takes earth out of the trench and drives away; the truck sprites stay in `machine.png` unused.
