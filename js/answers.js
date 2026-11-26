@@ -40,7 +40,7 @@ function answerPanel(question, mine, t) {
       el("span", "answer-name", { textContent: entry.canonical }),
       ...(isMine ? [el("span", "answer-you", { textContent: t.answersYours })] : []),
       el("span", "answer-rarity", { textContent: key === "rejected" ? t.rejected : t.rarity[key] }),
-      el("span", "answer-pts", { textContent: key === "rejected" ? "0" : `+${pts}` }),
+      el("span", "answer-pts", { textContent: key === "rejected" ? "0" : (t.plus ?? ((n) => `+${n}`))(pts) }),
     );
     const more = el("div", "answer-more", { hidden: true });
     more.append(el("p", "", { textContent: entry.explanation }));

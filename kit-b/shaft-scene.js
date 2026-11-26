@@ -32,7 +32,7 @@ const MAN = { idle: [0, 4, 52, 88], ready: [6, 6, 52, 88], dig: [8, 8, 76, 80], 
 // the picture, in art pixels
 const W = 640, SKY = 40, K = 0.5;                                // ground level at y 40; half an art pixel per metre: 700 m = 350 px
 const H = SKY + BOTTOM * K + 24;
-const SX0 = 294, SX1 = 346;                                      // the shaft (52 px wide: the archaeologist fits in it)
+const SX0 = 304, SX1 = 336;                                      // the shaft (32 px wide: the archaeologist is drawn at a smaller scale than the ground, see fit())
 const yOf = (m) => SKY + Math.round(m * K);
 
 function el(tag, className, props = {}) {
@@ -114,29 +114,38 @@ export function mountScene(parent = document.body, opts = {}) {
   cv.width = W;
   cv.height = H;
   const g = cv.getContext("2d");
-  const eraLabels = ERAS.map((e) => { const n = el("div", "era-label", { textContent: e.name }); n.style.top = `${yOf(e.from) + 3}px`; return n; });
-  const bottomLabel = el("div", "era-label bottom", { textContent: "700 m" });
-  bottomLabel.style.top = `${yOf(BOTTOM) + 3}px`;
+  // the era names: large and faint INSIDE each layer, right of the shaft (the finds are in the left wall); the bedrock is the goal
+  const eraName = (name, years, y, cls = "") => { const n = el("div", `era-name ${cls}`); n.append(el("b", "", { textContent: name }), el("span", "", { textContent: years })); n.style.top = `${y}px`; return n; };
+  const eraLabels = ERAS.map((e) => eraName(e.name, e.years, yOf(e.from) + 4));
+  const bottomLabel = eraName("One in a Historillion", `${BOTTOM} m`, yOf(BOTTOM) + 3, "bottom");
   const findsBox = el("div", "sfinds");
   const man = el("div", "sprite man");
   const manWrap = el("div", "sman");
   manWrap.append(man);
   world.append(cv, ...eraLabels, bottomLabel, findsBox, manWrap);
-  const meter = el("div", "depth-meter");                        // the depth, at the side: "439 m" and the layer
-  const meterM = el("b");
-  const meterEra = el("span");
-  meter.append(meterM, meterEra);
+  // the depth bar at the side (like Krillion's gauge): 0 to 700 m, the six eras, where you are, the bottom as the goal. The ONLY depth readout while playing.
+  const bar = el("div", "depth-bar");
+  const track = el("div", "db-track");
+  ERAS.forEach((e) => { const seg = el("i"); seg.style.flexGrow = e.to - e.from; seg.style.background = e.c[2]; track.append(seg); });
+  const dark = el("div", "db-dark");                             // the part not dug yet is darker
+  const mark = el("div", "db-mark");
+  const meterM = el("b");                                        // only the metres: the layer you are in is the gold name in the ground
+  mark.append(meterM);
+  track.append(dark, mark);
+  const goal = el("p", "db-goal");
+  goal.append(el("b", "", { textContent: `${BOTTOM} m` }), el("span", "", { textContent: "One in a Historillion" }));
+  bar.append(track, goal);
   const edge = el("div", "urgent-edge");
   root.append(world, edge);
   const hudEl = el("div", "", { id: "hud" });
   parent.prepend(root, hudEl);
-  parent.append(meter);
+  parent.append(bar);
 
   // ---- state ----
   let depth = 0;                                                 // metres dug today (the bottom of the shaft)
   let shown = 0;                                                 // the depth drawn right now (it runs behind depth during a dig)
   let finds = [];                                                // [{ key, points, depth }]
-  let view = { s: 3, ox: 0, top: 0, bottom: 600, whole: false };
+  let view = { s: 2, ms: 1, ox: 0, top: 0, bottom: 600, whole: false };   // s: screen px per art px of the ground; ms: screen px per sprite px (man, finds), smaller so metres feel big
 
   function draw() {
     g.drawImage(ground, 0, 0);
@@ -153,15 +162,16 @@ export function mountScene(parent = document.body, opts = {}) {
   function camera() {
     const { s } = view;
     let ty;
-    if (view.whole) ty = Math.round(view.bottom - 16 - (yOf(depth) + 34) * s);   // the whole shaft of the day, its bottom near the bottom of the screen (behind the end panel)
-    else ty = Math.round(view.top + (view.bottom - view.top) * 0.6 - yOf(shown) * s);
+    if (view.whole) ty = Math.round(Math.min(view.top - 12 * s, view.bottom - 16 - (yOf(depth) + 34) * s));   // the whole shaft of the day: the grass just under the panel (intro), or higher so the shaft bottom stays on screen
+    else ty = Math.min(Math.round(view.top + (view.bottom - view.top) * 0.6 - yOf(shown) * s), view.top - 16 * s);   // shaft bottom at 60 %, but never empty sky: the grass stays near the top
     ty = Math.max(ty, view.bottom - H * s);                      // never past the bedrock
     world.style.transform = `translate(${view.ox}px, ${ty - (ty % s)}px) scale(${s})`;
-    manWrap.style.translate = `${(SX0 + SX1) / 2 - anchor[0] - 2}px ${yOf(shown) + 6 - anchor[1] - 4}px`;   // .man sits at (2, 4) in its wrapper (theme.css)
+    const sc = view.ms / s;                                      // the man at a whole number of screen px per sprite px; his feet on the shaft floor. .man sits at (2, 4) in its wrapper (theme.css)
+    manWrap.style.scale = sc;
+    manWrap.style.translate = `${(SX0 + SX1) / 2 - (anchor[0] + 2) * sc}px ${yOf(shown) + 6 - (anchor[1] + 4) * sc}px`;
     const e = eraAt(shown);
     meterM.textContent = `${Math.round(shown)} m`;
-    meterEra.textContent = e.name;
-    meter.dataset.era = String(ERAS.indexOf(e));
+    bar.style.setProperty("--f", `${(shown / BOTTOM) * 100}%`);
     eraLabels.forEach((n, i) => n.classList.toggle("here", ERAS[i] === e));
   }
 
@@ -180,15 +190,23 @@ export function mountScene(parent = document.body, opts = {}) {
     man.classList.add(still() ? "still" : mode);
     camera();
   }
-  function placeFinds(popLast) {
+  let fresh = false;                                             // the find of the last answer is framed until the next question
+  function placeFinds(popLast = false) {
     findsBox.replaceChildren();
+    const sc = view.ms / view.s, fw = 24 * sc, fh = 30 * sc;    // a find in art px (same sprite scale as the man)
     finds.forEach((f, i) => {
-      const same = finds.slice(0, i).filter((o) => Math.abs(o.depth - f.depth) < 20).length;   // finds at (almost) the same depth sit side by side
+      const e = eraAt(Math.max(0, f.depth - 1));                 // the layer it was dug out of
+      const y0 = yOf(e.from ?? BOTTOM) + 3, y1 = (e.to ? yOf(e.to) : H) - 3 - fh;   // keep it inside that layer, off the borders
+      const top = Math.round(Math.min(Math.max(yOf(f.depth) - fh + 2, y0), Math.max(y0, y1)));
+      const same = finds.slice(0, i).filter((o) => Math.abs(o.top - top) < fh).length;   // finds at (almost) the same height sit side by side, deeper into the wall
+      f.top = top;
       const n = el("div", "sfind");
       n.style.setProperty("--k", FIND[f.key] ?? 4);
-      n.style.left = `${SX0 - 16 - same * 15}px`;                // in the LEFT wall (the depth meter and the layer names are on the right)
-      n.style.top = `${yOf(f.depth) - 24}px`;
+      n.style.scale = sc;
+      n.style.left = `${Math.round(SX0 - 2 - fw - same * (fw + 2))}px`;   // in the LEFT wall (the era names are on the right)
+      n.style.top = `${top}px`;
       n.dataset.key = f.key;
+      if (fresh && i === finds.length - 1) n.classList.add("new");
       if (popLast && i === finds.length - 1 && !still()) n.classList.add("pop");
       findsBox.append(n);
     });
@@ -215,6 +233,7 @@ export function mountScene(parent = document.body, opts = {}) {
         shown = to;
         draw();
         finds.push({ key: k, points, depth: to });
+        fresh = true;
         placeFinds(true);
         play(`rx_${k}`, 0.5, "once");
         sound.play(`reveal-${k}`);
@@ -237,7 +256,7 @@ export function mountScene(parent = document.body, opts = {}) {
         shown = from + (to - from) * (big ? u * u : 1 - (1 - u) * (1 - u));   // rare: it speeds up as it goes; common: it slows to a stop
         if (Math.floor(Math.max(t, 0) / (big ? 0.45 : 0.7)) >= hits && u < 1) { sound.play("hit", hits); hits++; }
         const e = eraAt(shown);
-        if (e !== era) { era = e; sound.play("layer"); meter.classList.remove("new"); void meter.offsetWidth; meter.classList.add("new"); }
+        if (e !== era) { era = e; sound.play("layer"); mark.classList.remove("new"); void mark.offsetWidth; mark.classList.add("new"); }
         draw();
         camera();
         if (u < 1) raf = setTimeout(tick, 16);
@@ -249,8 +268,9 @@ export function mountScene(parent = document.body, opts = {}) {
   function finish() { if (skip) skip(); }
 
   // ---- idle, day ----
-  function idle() { finish(); document.body.classList.remove("phase-feedback"); celebrate(false); urgent(false); play("idle", 2.4, "loop"); }
-  function ready() { finish(); document.body.classList.remove("phase-feedback"); celebrate(false); urgent(false); play("ready", 1.2, "once"); }
+  function calm() { finish(); document.body.classList.remove("phase-feedback"); celebrate(false); urgent(false); if (fresh) { fresh = false; placeFinds(); } }
+  function idle() { calm(); play("idle", 2.4, "loop"); }
+  function ready() { calm(); play("ready", 1.2, "once"); }
   function newDay() { finish(); depth = shown = 0; finds = []; placeFinds(false); draw(); idle(); }
   function setDay(list = []) {
     finish();
@@ -317,20 +337,30 @@ export function mountScene(parent = document.body, opts = {}) {
     const mainEl = document.querySelector("main");
     const whole = hudEl.hidden || document.body.classList.contains("phase-end");
     let top = 0, bottom = vh;
+    if (whole && mainEl) top = Math.ceil(mainEl.getBoundingClientRect().bottom) + 8;
     if (!whole && mainEl) {
-      top = Math.max(hudBottom + 6, Math.ceil(mainEl.getBoundingClientRect().bottom) + 6);
-      const bars = [...mainEl.querySelectorAll(":scope > form, :scope > button, :scope > .msg")].filter((n) => n.getClientRects().length).map((n) => n.getBoundingClientRect().top);
+      // top: under the question (and "your answer"); bottom: above the answer bar / Next / hint, or above the result strip after an answer (shaft.css)
+      const kids = [...mainEl.children].filter((n) => n.getClientRects().length);
+      const flow = kids.filter((n) => getComputedStyle(n).position === "static" && !n.matches(".rarity-word, .points, .explain"));
+      top = Math.max(hudBottom + 6, ...flow.map((n) => Math.ceil(n.getBoundingClientRect().bottom) + 6));
+      const bars = kids.filter((n) => n.matches("form, button, .msg, .rarity-word")).map((n) => n.getBoundingClientRect().top);
       bottom = (bars.length ? Math.min(...bars) : vh - 8) - 8;
     }
-    const sw = Math.max(2, Math.min(4, Math.floor(vw / 120)));
+    rs.setProperty("--qb", `${top}px`);
+    const sw = vw < 700 ? 2 : 3;                                 // the ground: 2 screen px per art px on a phone (several layers in view), 3 on a big screen
     const s = whole ? Math.max(2, Math.min(sw, Math.floor(vh / (yOf(depth) + 40)))) : sw;
-    view = { s, ox: Math.round(vw / 2 - (W / 2) * s), top, bottom, whole };
+    view = { s, ms: Math.max(1, sw - 1), ox: Math.round(vw / 2 - (W / 2) * s), top, bottom, whole };
     root.style.setProperty("--s", s);
-    const fs = (v) => `${v}px`;
-    meter.style.top = fs(Math.round(top + (bottom - top) * 0.6 - 44));   // level with the bottom of the shaft (the camera keeps it at 60 % of the free area)
-    meter.hidden = whole;
+    root.style.setProperty("--nw", `${Math.max(40, Math.floor((vw - 12 - view.ox) / s - SX1 - 10))}px`);   // room for the era names right of the shaft, in art px
+    // the depth bar spans the free area, left; hidden on the intro / end screen and when there is too little room (keyboard open)
+    const gh = 60;                                               // room under the bar for "700 m, One in a Historillion"
+    bar.hidden = whole || bottom - top < 150;
+    bar.style.top = `${top + 8}px`;
+    bar.style.height = `${Math.max(0, bottom - top - 16 - gh)}px`;
+    if (view.ms !== placedMs || s !== placedS) { placedMs = view.ms; placedS = s; placeFinds(); }   // only when the scale changed (re-placing would cut the pop short)
     camera();
   }
+  let placedMs = 0, placedS = 0;
   addEventListener("resize", fit);
   visualViewport?.addEventListener("resize", fit);
   const refit = () => requestAnimationFrame(fit);
@@ -342,5 +372,62 @@ export function mountScene(parent = document.body, opts = {}) {
   draw();
   idle();
   fit();
-  return { hud, idle, ready, dig, reset: idle, fit, sound, newDay, setDay, urgent, celebrate, finish, get depth() { return depth; }, get finds() { return finds.map((f) => ({ ...f })); } };
+  return { hud, idle, ready, dig, reset: idle, fit, sound, newDay, setDay, urgent, celebrate, finish, get depth() { return depth; }, get finds() { return finds.map(({ key, points, depth }) => ({ key, points, depth })); } };
+}
+
+// The end screen's core sample: the whole day as a slim column, 0 to 700 m, with the eras, the day's finds at their depths and the depth reached.
+// (The panel covers the shaft on the end screen; this is the summary of the day, and a start for a share picture.)
+//   import { coreSample } from "../kit-b/shaft-scene.js";
+//   show(coreSample({ finds: scene.finds, depth: total }), el("h1", ...), ...)          // label: (m, era, n) => the text a screen reader hears
+export function coreSample({ finds = [], depth = 0, label = (m, era, n) => `Today's dig: ${m} m, ${era}, ${n} finds` } = {}) {
+  const PX = 0.3, CW = 16, TOP = 3;                              // screen px per metre, column width, grass on top
+  const yc = (m) => TOP + Math.round(Math.min(m, BOTTOM) * PX);
+  const HC = yc(BOTTOM) + 8;
+  const fig = el("figure", "core");
+  fig.setAttribute("role", "img");
+  fig.setAttribute("aria-label", label(depth, eraAt(depth).name, finds.length));
+  fig.style.height = `${HC + 4}px`;
+  const cv = el("canvas", "core-col");
+  cv.width = CW;
+  cv.height = HC;
+  const g = cv.getContext("2d");
+  const r = rng(5);
+  const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  px(0, 0, CW, TOP, "#3c7838");
+  for (const e of ERAS) {
+    const y0 = yc(e.from), y1 = yc(e.to);
+    px(0, y0, CW, y1 - y0, e.c[0]);
+    for (let i = 0; i < (y1 - y0) * CW / 6; i++) px(Math.floor(r() * CW), y0 + Math.floor(r() * (y1 - y0)), 1, 1, r() < 0.5 ? e.c[1] : e.c[2]);
+    if (e.from) px(0, y0, CW, 1, "#0e0a18");
+  }
+  px(0, yc(BOTTOM), CW, 8, "#28223a");
+  px(3, yc(BOTTOM) + 3, 1, 1, "#ffd038"); px(11, yc(BOTTOM) + 5, 1, 1, "#ffd038");
+  const yd = yc(depth);
+  px(6, 0, 4, yd, "#0a0c22");                                    // the day's shaft down the middle
+  fig.append(cv);
+  const mark = el("i", "core-mark");                             // the depth reached: a gold line across
+  mark.style.top = `${yd - 1}px`;
+  fig.append(mark);
+  ERAS.forEach((e) => {
+    const n = el("p", depth >= e.from && depth > 0 && eraAt(depth) === e ? "core-era here" : "core-era");
+    n.append(el("b", "", { textContent: e.name }), el("span", "", { textContent: e.years }));
+    n.style.top = `${yc(e.from)}px`;
+    fig.append(n);
+  });
+  const goal = el("p", depth >= BOTTOM ? "core-era bottom here" : "core-era bottom");
+  goal.append(el("b", "", { textContent: `${BOTTOM} m` }), el("span", "", { textContent: "One in a Historillion" }));
+  goal.style.top = `${yc(BOTTOM) - 6}px`;
+  fig.append(goal);
+  const placed = [];
+  finds.forEach((f) => {                                         // the finds left of the column, at their depth; close ones step further left
+    const top = Math.max(0, yc(f.depth) - 26);
+    const lane = placed.filter((t) => Math.abs(t - top) < 30).length;
+    placed.push(top);
+    const n = el("i", "core-find");
+    n.style.setProperty("--k", FIND[f.key] ?? 4);
+    n.style.top = `${top}px`;
+    n.style.setProperty("--lane", lane);
+    fig.append(n);
+  });
+  return fig;
 }

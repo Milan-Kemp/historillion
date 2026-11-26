@@ -1,10 +1,33 @@
-# 2D kit, v11: the cross-section dig (deeper = rarer); v10: phone layout
+# 2D kit, v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v11 (this version): the cross-section dig, deeper = rarer
+## v12 (this version): the cross-section, clear and calm
+
+Same API, hooks and flow as v11 (`scene.dig(key, points)` Promise, `newDay`, `setDay`, `depth`, `finds`, `ERAS`, `eraAt`). Files changed: `shaft-scene.js`, `shaft.css`, `end-screen.js`, demo `shaft.html`. Previews: `2d/previews/v12-375-sheet.png`, `v12-462-sheet.png`, `v12-1440-sheet.png` (intro, question, after common, after very rare, end screen); script `_build/shots12.py`.
+1. **Depth bar** (left edge of the free area, between the question and the answer bar): 0 to 700 m in the six era colours, the part not dug yet darker, a gold marker with the metres ("277 m", it blinks at a new era), and under it the goal "700 m, One in a Historillion". It is the only depth readout while playing: the ground meter is gone and `shaft.css` hides the top bar's score (`visibility: hidden`, so the progress squares stay centred). Hidden on the intro/end screen and when the free area is under 150 px (keyboard open).
+2. **The result has its own calm strip** just above Next: the big word, the metres and the explanation on one opaque dark panel (cream on rgb(14, 8, 18): 18:1). The question keeps a dark band of its own at the top (down to `--qb`, set by `fit()`), so nothing is read straight over the soil. The dig shows in between (the camera measures that area).
+3. **No overlaps on the right:** the ruler labels and the meter chip are gone; the era names (point 6) are the only thing right of the shaft.
+4. **The new find stands out:** a gold frame that blinks a few times and stays until the next question. Finds are kept inside the layer they came from (3 art px off each border); close finds step deeper into the left wall. (Era-specific finds, a Roman coin in the Roman layer: not done, it needs new art.)
+5. **More of the cross-section:** the ground at 2 screen px per art px on a phone (3 from 700 px wide), the man and the finds drawn at 1 screen px per sprite px on a phone (2 on a big screen), a narrower shaft (32 art px). The grass stays near the top of the free area (no empty sky); on a 375 x 812 phone four to five layers show while asking. Intro: the ground starts right under the panel.
+6. **Era names inside the layers:** large, faint (cream at 72 %, years at 86 %) with a full 1 px dark outline, right of the shaft, e.g. "MEDIEVAL / 500 to 1500"; the layer you are in is gold; the bedrock says "One in a Historillion / 700 m". On a big screen they are bigger (30 px) and use the empty soil.
+7. **One unit:** rank ranges read "150-249 m", "640+ m"; the curve axis "0 m 200 m 400 m 600 m" (a number every 200, ticks every 100); the curve's aria label adds " m". `endCurve({ unit })` and `rankList({ unit })` take another unit (`unit: ""` for points).
+8. **Core sample on the end screen:** `coreSample({ finds: scene.finds, depth: total })` (exported by `shaft-scene.js`) returns a `figure.core` (role img, with an aria label): a slim 16 px column 0 to 700 m in the era colours, the day's shaft down its middle, a gold line at the depth reached, the day's finds left of it at their depths, the eras with their years right of it (the reached one gold), "700 m, One in a Historillion" at the bottom. About 220 px tall, put it first.
+
+### The exact edits in `js/main.js` (v12)
+- `import { mountScene, eraAt, ERAS, coreSample } from "../kit-b/shaft-scene.js";`
+- End screen: put `coreSample({ finds: scene.finds, depth: total })` first in the `show(...)` call, before the big total. For "View results" of a stored day, call `scene.setDay(...)` before it (as in v11), so `scene.finds` is that day.
+- Optional: drop `score` from `scene.hud({...})` (the kit hides it anyway now; the depth bar says it).
+- Nothing else: `.wait` after the Promise, reading time, logbook, `?glass=`, `?scene=pit`, your `start`/`lift`/`layer` sounds stay as they are.
+### `js/strings/en.js` (v12)
+Only if you want the core sample's screen-reader text in en.js: `coreLabel: (m, era, n) => `Today's dig: ${m} m, ${era}, ${n} finds`` and pass `label: t.coreLabel`. The ranks and curve need no string change (the unit comes from the kit; pass `unit: ""` if you ever show points there again).
+
+### Not checked in v12
+Real phones and Safari (`body:has()` hides the top-bar score: Safari 15.4+); 375 x 470 with the keyboard open (the bar hides itself there, not looked at); contrast measured from the palette colours (era names: their 1 px outline is #0e0a18, so the ring is at least 8:1; without the outline the faint names fall under 3:1 on the lightest speckle), not with the A/B screenshot tool; the depth-bar chip could cover a find when 3+ finds sit at the same height (they step left towards the bar); the core sample's finds overlap when many are within ~30 m (they step left in lanes).
+
+## v11: the cross-section dig, deeper = rarer
 
 **One idea:** a side view of the ground, one layer per era, the day's ONE shaft. Each answer digs it deeper by its points (1 point = 1 m, 700 m = the bottom, "One in a Historillion"); the find of that answer stays in the shaft wall at that depth. The total score is the depth.
 New files: **`shaft-scene.js`** (replaces `dig-scene.js`; same top bar, sound and v10 phone layout), **`shaft.css`** (load after `theme.css` and `layout-phone.css`), demo **`shaft.html`** (`?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&day=4` = the first 4 answers already dug, `&still=1`). Old `dig-scene.js`, `demo.html` and their art stay in the kit but are no longer used.

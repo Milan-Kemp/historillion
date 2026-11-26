@@ -1,24 +1,64 @@
-/* Historillion, 2D kit v11: the cross-section dig (shaft-scene.js). Load after theme.css and layout-phone.css. */
+/* Historillion, 2D kit v12: the cross-section dig (shaft-scene.js). Load after theme.css and layout-phone.css. */
 #scene.shaft { background: #1e1846; }
 #scene.shaft.rumble { animation: srumble 0.12s steps(2) infinite; }                    /* rare and very rare: the ground shakes 2 px */
 @keyframes srumble { 50% { translate: 2px 1px; } }
 #scene .sworld { position: absolute; left: 0; top: 0; width: 640px; height: 414px; transform-origin: 0 0; }
 #scene .sground { position: absolute; left: 0; top: 0; image-rendering: pixelated; }
-#scene .sman, #scene .sfinds { position: absolute; left: 0; top: 0; width: 0; height: 0; }
-#scene .sfind { position: absolute; width: 24px; height: 30px; background: url("scene/slots.png") no-repeat calc(var(--k, 0) * -24px) 0 / 120px 30px; image-rendering: pixelated; }
+#scene .sman, #scene .sfinds { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+#scene .sfind { position: absolute; width: 24px; height: 30px; transform-origin: 0 0; background: url("scene/slots.png") no-repeat calc(var(--k, 0) * -24px) 0 / 120px 30px; image-rendering: pixelated; }
 #scene .sfind.pop { animation: find-pop 0.4s steps(4) both; }                         /* the find comes out of the wall */
 @keyframes find-pop { from { transform: scale(0); } 60% { transform: scale(1.4); } to { transform: none; } }
-/* the layer names: real text on a dark chip, 12 px on screen whatever the zoom, right of the shaft, on a ruler; the layer you are in turns gold */
-#scene .era-label { position: absolute; left: 352px; max-width: 34px; white-space: normal; width: max-content; font: 700 calc(12px / var(--s, 3)) / 1.15 var(--font-text); text-transform: uppercase; letter-spacing: 0.02em;
-  color: var(--cream); background: rgba(14, 8, 18, 0.82); padding: calc(2px / var(--s, 3)) calc(5px / var(--s, 3)); border-radius: calc(3px / var(--s, 3)); }
-#scene .era-label.here { color: var(--gold); }
-#scene .era-label.bottom { color: var(--gold-lit); }
-/* the depth meter at the side (like Krillion's metres): the metres and the layer */
-.depth-meter { position: fixed; z-index: 2; right: var(--col-r, 12px); display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding: 6px 10px; pointer-events: none;
-  background: rgba(14, 8, 18, 0.8); border-radius: 8px; text-align: right; }
-.depth-meter[hidden] { display: none; }
-.depth-meter b { font: 700 var(--px-2)/1 var(--font-display); color: var(--gold); }
-.depth-meter span { font: 700 var(--fs-micro)/1.2 var(--font-text); color: var(--cream); text-transform: uppercase; letter-spacing: 0.04em; }
-.depth-meter.new { animation: meter-new 0.5s steps(4); }                                /* a new layer: the meter blinks once */
-@keyframes meter-new { 50% { background: rgba(140, 84, 28, 0.95); } }
-@media (prefers-reduced-motion: reduce) { #scene.shaft.rumble, #scene .sfind.pop, .depth-meter.new { animation: none; } }
+#scene .sfind.new { outline: 1px solid var(--gold-lit); outline-offset: 1px; box-shadow: 0 0 0 3px rgba(14, 8, 18, 0.7); animation: find-new 0.5s steps(2) 0.4s 4; }   /* the find of this answer: a gold frame (it blinks a few times) */
+#scene .sfind.new.pop { animation: find-pop 0.4s steps(4) both, find-new 0.5s steps(2) 0.4s 4; }
+@keyframes find-new { 50% { outline-color: transparent; } }
+
+/* the era names, large and faint inside each layer, right of the shaft (--nw: the room there, set by fit()); the layer you are in is gold */
+#scene .era-name { position: absolute; left: 346px; max-width: var(--nw, 60px); display: flex; flex-direction: column; gap: calc(2px / var(--s, 2)); pointer-events: none;
+  --o: calc(1px / var(--s, 2));                                                          /* a full 1 screen-px dark outline: readable on the lightest speckle */
+  text-shadow: calc(var(--o) * -1) 0 0 #0e0a18, var(--o) 0 0 #0e0a18, 0 calc(var(--o) * -1) 0 #0e0a18, 0 var(--o) 0 #0e0a18, calc(var(--o) * -1) calc(var(--o) * -1) 0 #0e0a18, var(--o) var(--o) 0 #0e0a18,
+    calc(var(--o) * -1) var(--o) 0 #0e0a18, var(--o) calc(var(--o) * -1) 0 #0e0a18, 0 0 calc(4px / var(--s, 2)) #0e0a18; }
+#scene .era-name b { font: 700 calc(19px / var(--s, 2)) / 1.05 var(--font-display); text-transform: uppercase; color: rgba(250, 246, 235, 0.72); }
+#scene .era-name span { font: 700 calc(12px / var(--s, 2)) / 1.2 var(--font-text); color: rgba(250, 246, 235, 0.86); }
+#scene .era-name.here b, #scene .era-name.bottom b { color: var(--gold); }
+@media (min-width: 700px) { #scene .era-name b { font-size: calc(30px / var(--s, 3)); } #scene .era-name span { font-size: calc(15px / var(--s, 3)); } }
+
+/* the depth bar (the only depth readout while playing; the top bar's score is hidden, it said the same) */
+body:has(> #scene.shaft) #hud .hud-score { visibility: hidden; }
+.depth-bar { position: fixed; z-index: 1; left: var(--col-l, 12px); width: 10px; pointer-events: none; }
+.depth-bar[hidden] { display: none; }
+.db-track { position: absolute; inset: 0; display: flex; flex-direction: column; outline: 2px solid #0e0a18; border-radius: 2px; }
+.db-track i { display: block; flex: 1 1 0; min-height: 0; border-top: 1px solid #0e0a18; }
+.db-track i:first-child { border-top: 0; }
+.db-dark { position: absolute; left: 0; right: 0; top: var(--f, 0%); bottom: 0; background: rgba(14, 8, 18, 0.62); }      /* not dug yet */
+.db-mark { position: absolute; left: -4px; top: var(--f, 0%); translate: 0 -50%; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 8px 5px 16px;
+  background: linear-gradient(90deg, var(--gold) 0 12px, rgba(14, 8, 18, 0.88) 12px); border-radius: 0 8px 8px 0; clip-path: polygon(0 50%, 8px 0, 100% 0, 100% 100%, 8px 100%); white-space: nowrap; }
+.db-mark b { font: 700 var(--px-1)/1 var(--font-display); color: var(--gold); }
+.db-mark.new { animation: meter-new 0.5s steps(4); }                                    /* a new layer: the marker blinks once */
+@keyframes meter-new { 50% { background: linear-gradient(90deg, var(--gold) 0 12px, rgba(140, 84, 28, 0.95) 12px); } }
+.db-goal { position: absolute; left: -2px; top: calc(100% + 6px); width: max-content; max-width: 92px; margin: 0; display: flex; flex-direction: column; padding: 3px 7px; background: rgba(14, 8, 18, 0.88); border-radius: 6px; }   /* narrow: the finds sit in the wall right of it */
+.db-goal b { font: 700 var(--fs-small)/1.1 var(--font-display); color: var(--gold-lit); }
+.db-goal span { font: 700 var(--fs-micro)/1.2 var(--font-text); color: var(--cream); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* the result after an answer: a calm strip of its own just above Next, never straight over the ground.
+   main runs from the top bar to Next; the question stays at the top, the strip (word, metres, explanation) at the bottom, the dig shows in between. */
+body.phase-feedback:not(.no-hud):not(.phase-end) main { display: flex; flex-direction: column; bottom: calc(var(--bar-bottom) + var(--bar-h) + 8px); max-height: none; overflow: visible; pointer-events: none; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > * { pointer-events: auto; }
+/* the question has a calm dark band of its own (down to --qb, the top of the free area, set by fit()): the ground can be right behind it when the shaft is deep */
+body:not(.no-hud):not(.phase-end) main::before { bottom: auto; height: calc(var(--qb, 160px) + 6px); background: linear-gradient(rgba(8, 4, 16, 0.9), rgba(8, 4, 16, 0.86) calc(100% - 12px), rgba(8, 4, 16, 0)); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word { margin: auto 0 0; padding: 14px 12px 2px; background: rgb(14, 8, 18); border-radius: 12px 12px 0 0; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > .points { margin: 0; padding: 4px 12px 8px; background: rgb(14, 8, 18); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > .explain { max-width: none; margin: 0; padding: 0 14px 14px; background: rgb(14, 8, 18); border-radius: 0 0 12px 12px; opacity: 1; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > .points:last-child { padding-bottom: 14px; border-radius: 0 0 12px 12px; }
+html.compact body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word { font-size: var(--px-3); padding-top: 8px; }
+
+/* the end screen: the core sample (coreSample()), the day as one column; the finds left of it, the eras right */
+.core { position: relative; width: 17rem; max-width: 100%; margin: 0 auto var(--sp-3); }
+.core-col { position: absolute; left: 88px; top: 0; image-rendering: pixelated; outline: 1px solid #0e0a18; }
+.core-mark { position: absolute; left: 82px; width: 28px; height: 2px; background: var(--gold-lit); box-shadow: 0 0 0 1px #0e0a18; }
+.core-find { position: absolute; left: calc(60px - var(--lane, 0) * 26px); width: 24px; height: 30px; background: url("scene/slots.png") no-repeat calc(var(--k, 0) * -24px) 0 / 120px 30px; image-rendering: pixelated; }
+.core-era { position: absolute; left: 114px; margin: 0; display: flex; flex-direction: column; line-height: 1.15; text-shadow: none; }
+.core-era b { font: 700 var(--fs-micro)/1.2 var(--font-text); color: var(--cream); text-transform: uppercase; letter-spacing: 0.04em; }
+.core-era span { font: 400 var(--fs-micro)/1.2 var(--font-text); color: var(--cream-dark); }
+.core-era.here b, .core-era.bottom b { color: var(--gold); }
+
+@media (prefers-reduced-motion: reduce) { #scene.shaft.rumble, #scene .sfind.pop, #scene .sfind.new, .db-mark.new { animation: none; } }

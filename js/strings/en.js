@@ -33,6 +33,7 @@ export const t = {
   // The cross-section dig (2d kit v11): the score is the depth in metres.
   depthLabel: (m) => `${m} m`,
   metres: (m) => `+${m} m`,
+  coreLabel: (m, era, n) => `Today's dig: ${m} m, ${era}, ${n} finds`,
   reached: (m, era) => `You reached ${m} m, ${era}`,
   // The one big word after an answer (2d kit, phone layout).
   rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "One in a Historillion", none: "Nothing" },
@@ -74,6 +75,9 @@ export const t = {
   questionCol: "Question",
   rarityCol: "Rarity",
   pointsCol: "Points",
+  // The intro of the cross-section dig (2d kit v11): the idea in two lines.
+  taglineDepth: "7 history questions. 3 seconds to read, 25 to answer. The rarer your answer, the deeper you dig.",
+  howDepth: "Every point is a metre: a common answer digs a little, a rare one a long way. The bottom is at 700 m, One in a Historillion.",
   howScoring: "Rarer answers earn more points: every time an answer is half as common, it earns 15 more points (max 100).",
   playAgain: "Play again",
   viewResults: "View results",

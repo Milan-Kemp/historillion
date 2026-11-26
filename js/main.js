@@ -106,8 +106,8 @@ function intro(day) {
   }
   show(
     el("h1", { textContent: t.title }),
-    el("p", { textContent: t.tagline }),
-    el("p", { textContent: t.howScoring }),
+    el("p", { textContent: shaft ? t.taglineDepth : t.tagline }),
+    el("p", { textContent: shaft ? t.howDepth : t.howScoring }),
     ...logbook,
     el("button", { textContent: t.start, onclick: () => { scene?.sound.play("start"); ask(day, 0, []); } }),
   );
@@ -282,13 +282,14 @@ function end(day, results, review = false) {
     // The curve is an estimate from predicted answer shares (no real players yet); endCurve prints that too.
     const dist = scoreDistribution(day);
     show(
+      ...(shaft ? [shaft.coreSample({ finds: scene.finds, depth: total, label: t.coreLabel })] : []), // the day's dig as a slim column, 0 to 700 m
       el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), shaft ? t.depthLabel(total) : String(total)),
       el("p", { className: "sub", textContent: shaft ? t.reached(total, shaft.eraAt(total).name) : t.totalLabel }),
       ...logbook,
-      endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve }),
-      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle }),
+      endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, unit: shaft ? " m" : "" }),
+      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle, unit: shaft ? " m" : "" }),
       resultsList({
-        day, t, spriteUrl: (name) => `${KIT}/sprites/finds/${name}.png`,
+        day, t: shaft ? { ...t, pointsShort: "m", plus: t.metres } : t, spriteUrl: (name) => `${KIT}/sprites/finds/${name}.png`,
         results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, name: r.name, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })),
       }),
       endKit.nextDig({ label: t.nextDig }),

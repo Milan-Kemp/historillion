@@ -29,7 +29,7 @@ const CURVE_LABELS = {
   you: "YOU",
   better: (pct) => `Better than ${pct}% of players`,
   estimate: "Estimated, based on predicted answers",
-  aria: (total, pct) => `Your score is ${total}, better than ${pct}% of players (estimated)`,
+  aria: (total, pct, unit = "") => `Your score is ${total}${unit}, better than ${pct}% of players (estimated)`,
 };
 
 const NS = "http://www.w3.org/2000/svg";
@@ -63,7 +63,7 @@ function smooth(points) {
 }
 
 // bins: [{ from, to, p }] over 0..max; total: the player's score; percentile: the share below the score (0..1). Returns <figure class="curve">.
-export function endCurve({ bins, total, percentile, max = 700, labels = {}, topFrom = 640 }) {
+export function endCurve({ bins, total, percentile, max = 700, labels = {}, topFrom = 640, unit = " m" }) {   // unit: after the axis numbers (v12: the score is metres)
   const L = { ...CURVE_LABELS, ...labels };
   const W = 320, H = 150, X0 = 12, X1 = 308, BASE = 112, TOP = 22;
   const x = (score) => X0 + (Math.min(Math.max(score, 0), max) / max) * (X1 - X0);
@@ -73,13 +73,14 @@ export function endCurve({ bins, total, percentile, max = 700, labels = {}, topF
   const pct = Math.round(percentile * 100);
 
   const fig = el("figure", total >= topFrom ? "curve top" : "curve");                 // "top": the marker glows (CSS)
-  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L.aria(total, pct), class: "curve-svg" });
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L.aria(total, pct, unit), class: "curve-svg" });
   s.append(svg("path", { class: "curve-area", d: `${smooth(pts)} L${pts[pts.length - 1][0].toFixed(1)},${BASE} L${pts[0][0].toFixed(1)},${BASE} Z` }));
   s.append(svg("line", { class: "curve-base", x1: X0, y1: BASE, x2: X1, y2: BASE }));
   for (let v = 0; v <= max; v += 100) {                                                              // axis ticks every 100
     s.append(svg("line", { class: "curve-tick", x1: x(v), y1: BASE, x2: x(v), y2: BASE + 4 }));
-    const label = svg("text", { class: "curve-axis", x: x(v), y: BASE + 15, "text-anchor": "middle" });
-    label.textContent = String(v);
+    if (v % 200) continue;                                                                            // a number every 200 (with the unit there is no room for every 100)
+    const label = svg("text", { class: "curve-axis", x: x(v), y: BASE + 15, "text-anchor": v ? "middle" : "start" });
+    label.textContent = `${v}${unit}`;
     s.append(label);
   }
   s.append(svg("path", { class: "curve-line", d: smooth(pts) }));
@@ -99,7 +100,7 @@ export function endCurve({ bins, total, percentile, max = 700, labels = {}, topF
 }
 
 // ranks: [{ from, name, line }] ascending (default RANKS). The rank the score falls in is highlighted (aria-current).
-export function rankList({ total, ranks = RANKS, title = "Your rank" }) {
+export function rankList({ total, ranks = RANKS, title = "Your rank", unit = " m" }) {
   const sec = el("section", "ranks");
   sec.append(el("h3", "", { textContent: title }));
   const ol = el("ol");
@@ -108,7 +109,7 @@ export function rankList({ total, ranks = RANKS, title = "Your rank" }) {
     const next = ranks[i + 1];
     const li = el("li", i === current ? (i === ranks.length - 1 ? "now top" : "now") : "");   // the highest rank gets its own look (shimmer, see theme.css)
     if (i === current) li.setAttribute("aria-current", "true");
-    li.append(el("span", "range", { textContent: next ? `${r.from}-${next.from - 1}` : `${r.from}+` }), el("span", "rank-name", { textContent: r.name }), el("span", "rank-line", { textContent: r.line }));
+    li.append(el("span", "range", { textContent: next ? `${r.from}-${next.from - 1}${unit}` : `${r.from}+${unit}` }), el("span", "rank-name", { textContent: r.name }), el("span", "rank-line", { textContent: r.line }));
     ol.append(li);
   });
   sec.append(ol);
