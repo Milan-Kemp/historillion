@@ -3,6 +3,7 @@ import { match, suggest } from "./matching.js";
 import { points, rarityKey } from "./scoring.js";
 import { scoreDistribution, bins, percentile } from "./distribution.js";
 import { resultsList } from "./answers.js";
+import { loadDays, saveDay, stats } from "./progress.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
@@ -27,10 +28,12 @@ if (KIT === "kit-b") {
 const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
-const scene = kit.mountScene?.();
+const scene = kit.mountScene?.(document.body, { benchLabels: t.benchLabel });
 // The new end screen (curve, ranks, finds list) only exists in the 2d kit.
 const endKit = scene ? await import(`../${KIT}/end-screen.js`) : null;
 
+// ?replay=1 is for testing: play today's dig again, nothing is saved.
+const REPLAY = new URLSearchParams(location.search).has("replay");
 const SECONDS = 25;
 const READ_SECONDS = 3; // time to read the question before the clock starts
 const app = document.getElementById("app");
@@ -73,10 +76,26 @@ function grade(input, question) {
 function intro(day) {
   scene?.hud(null);
   scene?.idle();
+  const days = loadDays();
+  const s = stats(days, day.date);
+  const logbook = s.played ? [el("p", { className: "logbook", textContent: t.logbook(s) })] : [];
+  const today = REPLAY ? null : days[day.date];
+  if (today) { // one dig a day: today's is done, show it again instead of playing it again
+    const results = today.map((r) => ({ ...r, typed: r.typed ?? "", dig: t.dig[r.key] }));
+    show(
+      el("h1", { textContent: t.title }),
+      el("p", { textContent: t.doneToday(results.reduce((x, r) => x + r.pts, 0)) }),
+      ...logbook,
+      ...(endKit ? [endKit.nextDig({ label: t.nextDig })] : []),
+      el("button", { textContent: t.viewResults, onclick: () => end(day, results, true) }),
+    );
+    return;
+  }
   show(
     el("h1", { textContent: t.title }),
     el("p", { textContent: t.tagline }),
     el("p", { textContent: t.howScoring }),
+    ...logbook,
     el("button", { textContent: t.start, onclick: () => { scene?.sound.play("start"); ask(day, 0, []); } }),
   );
 }
@@ -223,12 +242,16 @@ function revealWhenDug(nodes, done) {
   waiting.observe(react, { attributes: true, attributeFilter: ["hidden"] });
 }
 
-function end(day, results) {
+function end(day, results, review = false) {
   waiting?.disconnect();
   scene?.hud(null);
   scene?.reset();
-  scene?.sound.play("finish");
+  if (review) scene?.setFinds(results.map((r) => DIG[r.key].find)); // a stored day: its finds back on the bench
+  else scene?.sound.play("finish");
   const total = results.reduce((s, r) => s + r.pts, 0);
+  const days = REPLAY || review ? loadDays() : saveDay(day.date, results);
+  const logbook = el("p", { className: "logbook", textContent: t.logbook(stats(days, day.date)) });
+  const again = REPLAY ? [el("button", { textContent: t.playAgain, onclick: () => location.reload() })] : [];
   if (scene && total >= t.ranks.at(-1).from) scene.celebrate(); // the top rank, "One in a Historillion"
   if (endKit) {
     document.body.classList.add("phase-end"); // css/answers.css centres the results panel on the screen
@@ -237,6 +260,7 @@ function end(day, results) {
     show(
       el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), String(total)),
       el("p", { className: "sub", textContent: t.totalLabel }),
+      logbook,
       endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve }),
       endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle }),
       resultsList({
@@ -244,7 +268,7 @@ function end(day, results) {
         results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, name: r.name, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })),
       }),
       endKit.nextDig({ label: t.nextDig }),
-      el("button", { textContent: t.playAgain, onclick: () => location.reload() }),
+      ...again,
     );
     return;
   }
@@ -257,11 +281,12 @@ function end(day, results) {
   ));
   show(
     el("h1", { textContent: `${t.total}: ${total}` }),
+    logbook,
     museum(results.map((r) => ({ find: DIG[r.key].find, label: r.dig.find }))),
     el("table", {},
       el("thead", {}, el("tr", {}, ...[t.questionCol, t.yourAnswer, t.rarityCol, t.findCol, t.pointsCol].map((h) => el("th", { textContent: h })))),
       el("tbody", {}, ...rows)),
-    el("button", { textContent: t.playAgain, onclick: () => location.reload() }),
+    ...again,
   );
 }
 

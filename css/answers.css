@@ -75,3 +75,6 @@ body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="
 /* "One in a Historillion" is long: smaller than the other big words so it fits a phone (33 px, 44 px from 700 px wide). */
 body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"] { font-size: var(--px-2, 33px); line-height: 1.1; }
 @media (min-width: 700px) { body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="veryRare"] { font-size: var(--px-3, 44px); } }
+
+/* The logbook line (streak, played, best) on the start and end screens. */
+.logbook { margin: 0 0 var(--sp-3, 12px); font: 700 var(--fs-small, 14px)/1.4 var(--font-text, sans-serif); letter-spacing: .04em; color: var(--cream-dark, #dcc89c); }

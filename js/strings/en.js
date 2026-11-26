@@ -72,5 +72,8 @@ export const t = {
   pointsCol: "Points",
   howScoring: "Rarer answers earn more points: every time an answer is half as common, it earns 15 more points (max 100).",
   playAgain: "Play again",
+  viewResults: "View results",
+  doneToday: (n) => `You dug today: ${n} points. A new dig opens every day.`,
+  logbook: (s) => `Streak ${s.streak} · Played ${s.played} · Best ${s.best}${s.top ? ` · One in a Historillion ×${s.top}` : ""}`,
   loadError: "Could not load today's questions.",
 };

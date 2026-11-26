@@ -139,3 +139,23 @@ test("answerList: rarity filter, search, order", async () => {
   assert.deepEqual(answerList(q6, { query: "ming dynasty" }).map((i) => i.entry.canonical), ["Ming"]); // strip words are ignored
   assert.equal(answerList(q1, { query: "zzz" }).length, 0);
 });
+
+test("progress: one game per day, streak, best, top answers, bad stored data is ignored", async () => {
+  const { loadDays, saveDay, stats } = await import("../js/progress.js");
+  const mem = () => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)) }; };
+  const s = mem();
+  const game = (pts, key = "common") => [{ prompt: "Q", typed: "a", name: "A", key, pts, rarity: "Common answer" }];
+  saveDay("2026-12-01", game(100, "veryRare"), s);
+  saveDay("2026-12-01", game(5), s); // a second game the same day does not count
+  assert.equal(loadDays(s)["2026-12-01"][0].pts, 100);
+  saveDay("2026-12-02", game(300), s);
+  assert.deepEqual(stats(loadDays(s), "2026-12-02"), { played: 2, best: 300, streak: 2, top: 1 });
+  assert.equal(stats(loadDays(s), "2026-12-03").streak, 2); // today not played yet: yesterday's streak still stands
+  assert.equal(stats(loadDays(s), "2026-12-04").streak, 0); // a day missed: the streak is over
+  assert.equal(stats({}, "2026-12-01").best, 0);
+  const bad = mem();
+  bad.setItem("historillion.days", JSON.stringify({ "2026-12-01": [{ pts: "lots", key: "common" }], nope: [], "2026-12-02": game(10, "hacked") }));
+  assert.deepEqual(loadDays(bad), {});
+  bad.setItem("historillion.days", "{not json");
+  assert.deepEqual(loadDays(bad), {});
+});
