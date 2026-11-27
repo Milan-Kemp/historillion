@@ -1,10 +1,32 @@
-# 2D kit, v15: one square per answer; v14: the pit as a real excavation field (layers = eras); v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
+# 2D kit, v16: depth you see at a glance, a name under every square; v15: one square per answer; v14: the pit as a real excavation field (layers = eras); v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v15 (this version): one square per answer
+## v16 (this version): depth at a glance, a name under every square
+
+Everything from v15 stays (the API, the effects per rarity, the find table, the question and the answer bar). Two things change, both in `field.js`, `dig-scene.js` and `field.css`:
+
+1. **Depth shows in the shape, not only the colour.**
+   - The hole inside a square grows with its depth: at 0 points it is 30 % of the square, at 70 points and more it fills the whole square. The rest of the square stays sand, inside its strings. During a dig the hole widens as he goes down.
+   - A shallow hole has a low wall and a floor that still catches the sun (its layer's light tone).
+   - A deep hole has a tall wall with many layers and goes dark at the bottom: the foot of the wall and the floor get a 4x4 ordered dither shadow, more the deeper it is.
+   - **"none"** is almost closed: a little sand scraped away and a plain grey rock.
+   - New export: `holeOf(i, points, none)` gives the hole's rectangle and wall height (the find and the dust come up out of it).
+2. **A name under every square on the end screen.**
+   - Every dug square gets a small label with its bottom layer, centred on its near string: Modern, Early modern, Medieval, Roman, Bronze/Iron, Stone Age, Golden tomb, and "No find" for a "none" square.
+   - The labels are real text, 11 screen px at any zoom, readable on a 375 px phone. The deepest square's label and a tomb square's label are gold.
+   - During a question only his current square has a label, as in v15.
+   - The short names are in `ERAS[].short` (`field.js`).
+
+Previews: `2d/previews/v16-375-sheet.png` and `v16-1440-sheet.png` (question, common, end with an average day that has a "none" answer, end with a tomb square), and `v16-375-worlds.png` (one square per depth). Script: `_build/shots16.py`.
+
+**main.js and en.js:** no changes beyond v15. If you translate, `ERAS[].short` and "No find" (in `dig-scene.js`, `paintField`) are the new strings.
+
+**Not checked in v16:** real phones and Safari; the dither shadow on a very bright phone screen; in the `&pts=` demo the camera frames the next (empty) square, not the dug one (only the demo switch).
+
+## v15: one square per answer
 
 The v14 excavation field stays: the 3/4 view, the holes in the sand, the layers with their pieces, the tent, the find table, the ruins, and the grass around it. What changes: the trench no longer digs deeper and deeper with every answer. It is a rectangular excavation laid out with strings on pegs in **7 squares**, one per question, as archaeologists really work.
 

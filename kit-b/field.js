@@ -6,18 +6,18 @@
 // and the older the layer at its bottom. Inside a square you see its back wall with the layers he went through (the same earth colours and pieces as in v14)
 // and the bottom layer on its floor. A square has a fixed size: depth shows as the height of the wall inside it, never a wall that keeps growing.
 //
-// Exports: ERAS, eraIndex, eraAt, SQ, squareAt, actorOffset, actorToStage, wallH, drawSite, drawSquares, itemCanvas, tagCanvas, ITEM_NAMES, SITE, FIELD,
+// Exports: ERAS, eraIndex, eraAt, SQ, squareAt, holeOf, actorOffset, actorToStage, wallH, drawSite, drawSquares, itemCanvas, tagCanvas, ITEM_NAMES, SITE, FIELD,
 // TABLE_Y, SLOT_X.
 
 // ---- the eras, by the points of ONE answer (0 to 100); most answers give 20 to 40, 85 and up (the golden tomb) is about 1 answer in 40 ----
 export const ERAS = [
-  { from: 0, name: "Modern", years: "1800 to now" },
-  { from: 20, name: "Early modern", years: "1500 to 1800" },
-  { from: 30, name: "Medieval", years: "500 to 1500" },
-  { from: 40, name: "Roman & Classical", years: "800 BC to AD 500" },
-  { from: 55, name: "Bronze & Iron Age", years: "3300 to 800 BC" },
-  { from: 70, name: "Stone Age", years: "before 3300 BC" },
-  { from: 85, name: "One in a Historillion", years: "The hidden golden tomb", tag: "Golden tomb" },
+  { from: 0, name: "Modern", short: "Modern", years: "1800 to now" },
+  { from: 20, name: "Early modern", short: "Early modern", years: "1500 to 1800" },
+  { from: 30, name: "Medieval", short: "Medieval", years: "500 to 1500" },
+  { from: 40, name: "Roman & Classical", short: "Roman", years: "800 BC to AD 500" },
+  { from: 55, name: "Bronze & Iron Age", short: "Bronze/Iron", years: "3300 to 800 BC" },
+  { from: 70, name: "Stone Age", short: "Stone Age", years: "before 3300 BC" },
+  { from: 85, name: "One in a Historillion", short: "Golden tomb", years: "The hidden golden tomb", tag: "Golden tomb" },
 ];
 export const eraIndex = (p) => { let i = 0; while (i + 1 < ERAS.length && p >= ERAS[i + 1].from) i++; return i; };
 export const eraAt = (p) => ERAS[eraIndex(Math.max(0, p))];
@@ -44,6 +44,16 @@ const zFrom = (i) => Math.round(KD * ERAS[i].from);
 // the 7 squares in the order he digs them: 4 at the back (left to right), then 3 in front
 export const SQ = [0, 1, 2, 3].map((i) => ({ x0: 20 + i * (W + GAP), back: 40 })).concat([0, 1, 2].map((i) => ({ x0: 42 + i * (W + GAP), back: 40 + D + 12 })))
   .map((q) => ({ ...q, x1: q.x0 + W, front: q.back + D }));
+// v16: the hole inside a square grows with its depth, so shallow and deep read at a glance: a shallow answer is a small pit in the sand, a deep one fills
+// the square. "none" is only a scrape (h 0). Returns the hole's rectangle and wall height in stage px; the rest of the square stays sand.
+export const holeOf = (i, p, none = false) => {
+  const q = squareAt(i);
+  if (none) return { x0: q.x0 + 13, x1: q.x1 - 13, back: q.back + 20, front: q.back + 27, h: 0, none: true };
+  const h = wallH(p), f = Math.min(1, 0.3 + (0.7 * Math.max(0, p)) / 70);   // 0 points: 30 % of the square; 70 points and deeper: all of it
+  const hw = Math.round(W * f), hd = Math.min(D, Math.max(h + 7, Math.round(D * f)));
+  const x0 = q.x0 + Math.floor((W - hw) / 2), back = q.back + Math.floor((D - hd) / 2);
+  return { x0, x1: x0 + hw, back, front: back + hd, h };
+};
 export const squareAt = (i) => SQ[Math.min(Math.max(i, 0), SQ.length - 1)];
 export const FIELD = { x0: -20, x1: 214, top: -18, bottom: 160 };   // what the end screen shows: the camp, all 7 squares, the find table
 // he stands on the baulk left of the square and digs into it; his digging rows have their feet at (78, 84) in dig-scene.js; the actors are moved by this
@@ -175,40 +185,56 @@ function bit(p, era, k, x, y) {
 // ---- the squares: squares[i] = { points, dug } for the 7 squares (or null: closed). A dug square is a hole in the field: the back wall with the layers he went
 // through (from the top: Modern, down to the layer of that answer), the side walls leaning in, the floor in the colour of its bottom layer. The deepest square has a
 // gold rim; a square that reached the tomb shows the gold sarcophagus and glows gold. ----
+const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]].map((r) => r.map((v) => (v + 0.5) / 16));
 export function drawSquares(cv, squares, { deepest = -1, breaking = -1 } = {}) {
   cv.width = SITE.w; cv.height = SITE.h;
   const p = pen(cv.getContext("2d"), SITE.x0, SITE.y0);
   const eraOfDepth = (d) => { let i = 0; while (i + 1 < ERAS.length && d >= zFrom(i + 1)) i++; return i; };
   squares.forEach((sq, i) => {
     if (!sq || !sq.dug) return;
-    const q = SQ[i], h = wallH(sq.points), fy = q.back + h, here = eraIndex(sq.points);
-    const [fb, fd, fl] = SOIL[here];
-    for (let y = q.back; y < q.front; y++) {
-      const ins = Math.round(y <= fy ? 0.15 * (y - q.back) : 0.15 * h * (1 - (0.8 * (y - fy)) / (q.front - fy)));
-      const d = Math.min(y - q.back, h), e = eraOfDepth(d), [b, dk, l] = SOIL[e];
-      for (let x = q.x0; x < q.x1; x++) {
-        const hh = hash(x, y), side = x < q.x0 + ins || x >= q.x1 - ins;
-        if (y < fy) { const seam = e > 0 && d === zFrom(e); p.px(x, y, 1, 1, side ? ((x + y) % 2 ? dk : b) : seam ? dk : hh < 0.07 ? dk : hh < 0.12 ? l : b); }
-        else p.px(x, y, 1, 1, side ? ((x + y) % 2 ? fd : OUT) : hh < 0.15 ? fd : hh < 0.95 ? fb : fl);   // the floor: the bottom layer
+    const Q = SQ[i], none = sq.key === "none";
+    if (none) {                                                   // "none": a little sand scraped away and a plain rock, the square stays almost closed
+      const c = holeOf(i, 0, true);
+      for (let y = c.back; y < c.front; y++) for (let x = c.x0 - (y % 3); x < c.x1 + ((y + 1) % 2); x++) p.px(x, y, 1, 1, hash(x, y) < 0.25 ? paper[1] : paper[2]);
+      p.px(c.x0 + 4, c.back + 2, 5, 3, OUT); p.px(c.x0 + 5, c.back + 2, 3, 2, stone[2]); p.px(c.x0 + 5, c.back + 2, 2, 1, stone[4]);
+      for (let x = c.x0 - 2; x < c.x1 + 2; x += 3) p.px(x, c.front, 2, 1, paper[4]);   // the scraped sand, pushed aside
+    } else {
+      const q = holeOf(i, sq.points), h = q.h, fy = q.back + h, here = eraIndex(sq.points), w = q.x1 - q.x0;
+      const [fb, fd, fl] = SOIL[here];
+      const dark = Math.min(1, Math.max(0, (h - 10) / 18)), lit = Math.max(0.05, 0.9 - h / 18);   // deep holes go dark at the bottom, a shallow floor stays in the sun
+      for (let y = q.back; y < q.front; y++) {
+        const ins = Math.round(y <= fy ? 0.15 * (y - q.back) : 0.15 * h * (1 - (0.8 * (y - fy)) / (q.front - fy)));
+        const d = Math.min(y - q.back, h), e = eraOfDepth(d), [b, dk, l] = SOIL[e];
+        for (let x = q.x0; x < q.x1; x++) {
+          const hh = hash(x, y), side = x < q.x0 + ins || x >= q.x1 - ins;
+          if (y < fy) { const seam = e > 0 && d === zFrom(e); p.px(x, y, 1, 1, side ? ((x + y) % 2 ? dk : b) : seam ? dk : hh < 0.07 ? dk : hh < 0.12 ? l : b); }
+          else p.px(x, y, 1, 1, side ? ((x + y) % 2 ? fd : OUT) : hh < 0.15 ? fd : hh < 1 - lit ? fb : fl);   // the floor: the bottom layer, a shallow floor still catches the sun
+        }
       }
+      for (let y = q.back; y < Math.min(q.back + 3, fy); y++) p.dith(q.x0, y, w, 1, OUT, y % 2);   // the shadow under the far edge
+      // the shadow at the bottom (4x4 ordered dither): the foot of the wall and the floor go dark, more the deeper the hole
+      const top = fy - Math.round(h * 0.35);
+      for (let y = top; y < q.front - 1; y++) {
+        const t = y < fy ? (y - top) / Math.max(1, fy - top) : 1 - (0.6 * (y - fy)) / Math.max(1, q.front - fy);
+        for (let x = q.x0; x < q.x1; x++) { const v = BAYER[y & 3][x & 3], dn = 0.9 * dark * t; if (v < dn) p.px(x, y, 1, 1, v < dn * 0.55 ? OUT : SOIL[eraOfDepth(Math.min(y - q.back, h))][1]); }
+      }
+      p.px(q.x0, q.back, w, 1, OUT);
+      for (let e = 0; e <= here; e++) {                           // a piece or two in every layer thick enough to hold one
+        const d0 = zFrom(e), d1 = Math.min(e + 1 < ERAS.length ? zFrom(e + 1) : h, h);
+        if (d1 - d0 < 4 || w < 20) continue;
+        for (let k = 0; k < 2; k++) bit(p, e, k + i, q.x0 + 6 + Math.floor(hash(i * 7 + e, k) * (w - 16)), q.back + d0 + 1 + Math.floor(hash(k, e + i) * Math.max(1, d1 - d0 - 3)));
+      }
+      if (here === ERAS.length - 1) {                             // the golden tomb: the gold sarcophagus with its mask at the foot of the wall, and the square glows gold
+        const sx = q.x0 + Math.round(w / 2) - 10, sy = fy - 5;
+        p.box(sx, sy, 20, 6, gold[3]); p.px(sx, sy, 20, 1, gold[4]); p.box(sx + 7, sy - 4, 6, 4, gold[3]); p.px(sx + 8, sy - 3, 1, 1, OUT); p.px(sx + 11, sy - 3, 1, 1, OUT);
+        for (let x = Q.x0 - 2; x < Q.x1 + 2; x++) { p.dith(x, Q.back - 3, 1, 2, gold[3], x % 2); p.dith(x, Q.front + 1, 1, 2, gold[3], x % 2); }
+        for (let y = Q.back - 3; y < Q.front + 3; y++) { p.dith(Q.x0 - 3, y, 2, 1, gold[3], y % 2); p.dith(Q.x1 + 1, y, 2, 1, gold[3], y % 2); }
+      }
+      if (breaking === i) { p.px(q.x0 + 4, fy - 1, w - 8, 2, gold[5]); }
+      for (let x = q.x0; x < q.x1; x++) { p.px(x, q.front - 1 + Math.floor(hash(x, i) * 2), 1, 1, OUT); if (hash(x, i + 3) < 0.4) p.px(x, q.front, 1, 1, paper[3]); }   // the crumbled near edge
+      if (q.x0 > Q.x0) for (let y = q.back; y < q.front; y++) { p.px(q.x0 - 1, y, 1, 1, paper[4]); p.px(q.x1, y, 1, 1, paper[2]); }   // a small pit: its lit and shaded sand edges
     }
-    for (let y = q.back; y < Math.min(q.back + 3, fy); y++) p.dith(q.x0, y, W, 1, OUT, y % 2);   // the shadow under the far edge
-    p.px(q.x0, q.back, W, 1, OUT);
-    p.dith(q.x0, fy, W, 1, OUT);
-    for (let e = 0; e <= here; e++) {                             // a piece or two in every layer thick enough to hold one
-      const d0 = zFrom(e), d1 = Math.min(e + 1 < ERAS.length ? zFrom(e + 1) : h, h);
-      if (d1 - d0 < 4) continue;
-      for (let k = 0; k < 2; k++) bit(p, e, k + i, q.x0 + 6 + Math.floor(hash(i * 7 + e, k) * (W - 16)), q.back + d0 + 1 + Math.floor(hash(k, e + i) * Math.max(1, d1 - d0 - 3)));
-    }
-    if (here === ERAS.length - 1) {                               // the golden tomb: the gold sarcophagus with its mask at the foot of the wall, and the square glows gold
-      const sx = q.x0 + 8, sy = fy - 5;
-      p.box(sx, sy, 20, 6, gold[3]); p.px(sx, sy, 20, 1, gold[4]); p.box(sx + 7, sy - 4, 6, 4, gold[3]); p.px(sx + 8, sy - 3, 1, 1, OUT); p.px(sx + 11, sy - 3, 1, 1, OUT);
-      for (let x = q.x0 - 2; x < q.x1 + 2; x++) { p.dith(x, q.back - 3, 1, 2, gold[3], x % 2); p.dith(x, q.front + 1, 1, 2, gold[3], x % 2); }
-      for (let y = q.back - 3; y < q.front + 3; y++) { p.dith(q.x0 - 3, y, 2, 1, gold[3], y % 2); p.dith(q.x1 + 1, y, 2, 1, gold[3], y % 2); }
-    }
-    if (breaking === i) { p.px(q.x0 + 4, fy - 1, W - 8, 2, gold[5]); }
-    for (let x = q.x0; x < q.x1; x++) { p.px(x, q.front - 1 + Math.floor(hash(x, i) * 2), 1, 1, OUT); if (hash(x, i + 3) < 0.4) p.px(x, q.front, 1, 1, paper[3]); }   // the crumbled near edge
-    p.px(q.x0 - 1, q.back - 1, W + 2, 1, paper[4]); p.px(q.x0 - 1, q.front + 1, W + 2, 1, paper[4]);   // the string, over the hole's edges
-    if (i === deepest) { p.px(q.x0 - 2, q.back - 2, W + 4, 1, gold[3]); p.px(q.x0 - 2, q.front + 2, W + 4, 1, gold[3]); p.px(q.x0 - 2, q.back - 2, 1, D + 5, gold[3]); p.px(q.x1 + 1, q.back - 2, 1, D + 5, gold[3]); }
+    p.px(Q.x0 - 1, Q.back - 1, W + 2, 1, paper[4]); p.px(Q.x0 - 1, Q.front + 1, W + 2, 1, paper[4]);   // the string, over the edges
+    if (i === deepest) { p.px(Q.x0 - 2, Q.back - 2, W + 4, 1, gold[3]); p.px(Q.x0 - 2, Q.front + 2, W + 4, 1, gold[3]); p.px(Q.x0 - 2, Q.back - 2, 1, D + 5, gold[3]); p.px(Q.x1 + 1, Q.back - 2, 1, D + 5, gold[3]); }
   });
 }

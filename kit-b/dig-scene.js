@@ -31,7 +31,7 @@
 // p.dig is its text alternative, the squares have the words in .sr, the sound button has an aria-label.
 
 import { createSound } from "./sound.js";
-import { ERAS, eraIndex, eraAt, SQ, squareAt, wallH, actorOffset, actorToStage, drawSite, drawSquares, itemCanvas, tagCanvas, SITE, FIELD, SLOT_X, TABLE_Y, ITEM_NAMES } from "./field.js";
+import { ERAS, eraIndex, eraAt, SQ, squareAt, holeOf, actorOffset, actorToStage, drawSite, drawSquares, itemCanvas, tagCanvas, SITE, FIELD, SLOT_X, TABLE_Y, ITEM_NAMES } from "./field.js";
 export { ERAS, eraAt };
 
 export const DIG = {
@@ -247,14 +247,16 @@ export function mountScene(parent = document.body, opts = {}) {
     drawSquares(trench, list, { deepest: overview() ? deepestSquare() : -1, breaking: breaking ? cur : -1 });
     const [ax, ay] = actorOffset(cur);
     actors.style.translate = `${ax}px ${ay}px`;                 // he walks to his square (CSS steps); scaled by k about his feet, see fit()
-    const q = squares[cur];
     eraTags.replaceChildren();
-    if (q?.dug && !overview()) {                                 // the name of the layer at the bottom of his square, small, under it
-      const n = el("p", "here", { textContent: eraAt(shown).tag ?? eraAt(shown).name });
-      n.style.left = `${squareAt(cur).x1 + 1}px`;
-      n.style.top = `${squareAt(cur).front + 3}px`;
+    const whole = overview(), deep = whole ? deepestSquare() : -1;
+    list.forEach((q, i) => {                                     // the name of the bottom layer under the square: only his square during a question, every square at the end
+      if (!q?.dug || (!whole && i !== cur)) return;
+      const name = q.key === "none" ? "No find" : eraAt(q.points).short;
+      const n = el("p", whole ? (i === deep || eraIndex(q.points) === ERAS.length - 1 ? "all gold" : "all") : "here", { textContent: name });
+      n.style.left = `${whole ? (squareAt(i).x0 + squareAt(i).x1) / 2 : squareAt(i).x1 + 1}px`;
+      n.style.top = `${squareAt(i).front + (whole ? -1 : 3)}px`;
       eraTags.append(n);
-    }
+    });
   }
   // his square goes down from `shown` to `to` points between t0 and t1 seconds (in steps); a new layer gets a puff of dust, a small flash and the layer sound
   function deepen(to, t0, t1) {
@@ -268,8 +270,8 @@ export function mountScene(parent = document.body, opts = {}) {
   }
   function newLayer() {
     sound.play("layer");
-    const q = squareAt(cur);
-    fx("puff", ...stageToActor(q.x0 + 19, q.back + wallH(shown)), 0.5);
+    const hq = holeOf(cur, shown, squares[cur]?.key === "none");
+    fx("puff", ...stageToActor((hq.x0 + hq.x1) / 2, hq.back + hq.h), 0.5);
     if (flashes < 2) flashOnce(0.45);                            // the third flash is kept for the reveal
     const tag = eraTags.lastElementChild;
     if (tag) { tag.classList.remove("new"); void tag.offsetWidth; tag.classList.add("new"); }
@@ -464,7 +466,7 @@ export function mountScene(parent = document.body, opts = {}) {
     };
     // v14: the find lies half buried in the floor of the trench; he lifts it out (to beside him) or the winch hoists it up on its rope
     const at = (x, y) => { findWrap.style.translate = `${Math.round(x - 120)}px ${Math.round(y - 50)}px`; pendingFrom = [x, y]; };
-    const q = squareAt(cur), [fx0, fy0] = stageToActor(q.x0 + 19, q.back + wallH(pts) + 2);   // the find: half out of the bottom of his square
+    const hq = holeOf(cur, pts, k === "none"), [fx0, fy0] = stageToActor((hq.x0 + hq.x1) / 2, hq.back + hq.h + 2);   // the find: half out of the bottom of his square
     const revealFind = () => { item.hidden = false; item.classList.add("buried"); at(fx0, fy0); };
     const moveFind = (to, seconds, t0 = 0, withRope = false) => {   // in steps, on the beat's clock
       const n = 6;

@@ -1,4 +1,4 @@
-/* Historillion, 2D kit v15 (v14): the excavation field (field.js + dig-scene.js). Load after theme.css and layout-phone.css. */
+/* Historillion, 2D kit v16 (v15, v14): the excavation field (field.js + dig-scene.js). Load after theme.css and layout-phone.css. */
 #scene .site, #scene .trench, #scene .front { position: absolute; image-rendering: pixelated; }
 #scene .actors { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 78px 84px; transition: translate 0.7s steps(7); }   /* v15: he walks to the next square */   /* he and his machines: moved down with the trench floor, drawn smaller about his feet */
 #scene .tarp, #scene .flicker { display: none; }                                     /* no tarp, no lanterns: calm decor */
@@ -8,6 +8,9 @@
 #scene .era-tags p { position: absolute; margin: 0; translate: -100% 0; white-space: nowrap; font: 700 calc(11px / var(--s, 3)) / 1 var(--font-text); text-transform: uppercase; color: var(--cream);
   padding: calc(2px / var(--s, 3)) calc(4px / var(--s, 3)); background: rgba(14, 8, 18, 0.86); border-radius: calc(4px / var(--s, 3)); }
 #scene .era-tags p.here { color: var(--gold-lit); box-shadow: 0 0 0 calc(1px / var(--s, 3)) var(--gold-lit); }   /* the layer he is digging now */
+/* v16: on the end screen every square has its bottom layer's name, centred over its near string; the deepest square and a tomb square in gold */
+#scene .era-tags p.all { translate: -50% 0; text-transform: none; font-size: calc(11px / var(--s, 3)); }
+#scene .era-tags p.all.gold { color: var(--gold-lit); box-shadow: 0 0 0 calc(1px / var(--s, 3)) var(--gold-lit); }
 #scene .era-tags p.new { animation: tag-new 0.5s steps(2) 3; }
 @keyframes tag-new { 50% { background: rgba(140, 84, 28, 0.95); } }
 
