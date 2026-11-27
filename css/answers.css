@@ -45,8 +45,9 @@
 .result-more .chip:hover { background: var(--glass-soft, rgba(250, 246, 235, .07)); }
 .result-more .chip[aria-pressed="true"] { background: rgba(255, 208, 56, .14); border-color: var(--gold, #ffd038); color: var(--gold, #ffd038); }
 
-/* The end screen: the results panel sits in the middle of the screen (not stuck to the top) and scrolls inside. body.phase-end is set by main.js. */
-body.phase-end.no-hud main { top: 0; bottom: 0; margin-block: auto; height: fit-content; max-height: min(82vh, calc(var(--vh, 100dvh) - 40px)); }
+/* The end screen: the results panel sits in the middle of the screen (not stuck to the top) and scrolls inside. body.phase-end is set by main.js.
+   Not in the field (data-scene="pit"): there the kit ends the panel where the seven squares begin (--stagetop), so the day's squares stay in view. */
+body.phase-end.no-hud:not([data-scene="pit"]) main { top: 0; bottom: 0; margin-block: auto; height: fit-content; max-height: min(82vh, calc(var(--vh, 100dvh) - 40px)); }
 
 
 /* Reading time before the clock starts: the timer plate shows "Read 3" and its bar and colour animations wait (main.js removes .reading). */

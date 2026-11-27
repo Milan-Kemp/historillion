@@ -1,10 +1,101 @@
-# 2D kit, v14: the pit as a real excavation field (layers = eras); v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
+# 2D kit, v15: one square per answer; v14: the pit as a real excavation field (layers = eras); v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v14 (this version): the pit becomes a real excavation field
+## v15 (this version): one square per answer
+
+The v14 excavation field stays: the 3/4 view, the holes in the sand, the layers with their pieces, the tent, the find table, the ruins, and the grass around it. What changes: the trench no longer digs deeper and deeper with every answer. It is a rectangular excavation laid out with strings on pegs in **7 squares**, one per question, as archaeologists really work.
+
+Files: `dig-scene.js`, `field.js`, `field.css` and the demo `demo.html`. The script `_build/shots15.py` makes the previews:
+- `2d/previews/v15-375-sheet.png` and `v15-1440-sheet.png`: intro, question, common, rare, very rare, end screen (an average day), and end screen with a tomb square.
+- `v15-375-worlds.png`: one square dug to each layer.
+
+Demo switches:
+- `&day=4`: the first 4 answers of an average day already dug.
+- `&tomb=1`: that day has a tomb square.
+- `&pts=62`: one square dug to that depth.
+
+1. **The field:**
+   - The 7 squares lie in two rows: 4 at the back, 3 in front. Each square is 38 x 48 art px, with 6 px of baulk and a string on red pegs round every square. On a 375 px phone all 7 fit the end screen, with the find table behind them, next to the tent.
+   - At the start of the day all squares are closed (sand). Each question he walks to the next square (back row left to right, then the front row) and digs it open there.
+   - **The camera** follows his square while a question is on screen (4 screen px per art px on a phone). The intro and the end screen zoom out to the whole field.
+2. **One answer = one square:**
+   - **Depth:** the rarer the answer (more points, 0 to 100), the deeper that square. The square has a fixed size; its depth shows as the height of the wall inside it (0.4 px a point: 100 points is a 40 px wall) and as the layer on its floor.
+   - **Layers:** in the wall you see every layer he went through, with the earth colours and pieces of v14. The floor has the colour of the bottom layer, and the bottom layer's name stands small under the square.
+   - **Borders:** they are per answer, in points, as a parameter: `ERAS[].from` in `field.js`.
+     - Modern 0
+     - Early modern 20
+     - Medieval 30
+     - Roman 40
+     - Bronze/Iron 55
+     - Stone 70
+     - golden tomb "One in a Historillion" 85
+   - **The find:** it comes out of the bottom layer of that square, as one object per era: pocket watch, compass, sword, Roman coin, bronze axe, flint hand axe, golden mask. It shows half out of the ground with a white tag, then goes to the find table, where it stands in a row with a small number tag.
+   - **No answer ("none"):** he scrapes a little sand away (a 3 px square) and finds a plain rock.
+3. **Effects per rarity** (the v14 beats, at his square):
+   - common: short, no effect.
+   - uncommon: a small shake on the last stroke.
+   - rare: zoom and vignette, the winch hoists the find out of the square, and a flash.
+   - veryRare:
+     - the digger digs the square down to the golden tomb;
+     - the lift goes in slow motion;
+     - a white flash and the fanfare (`finish`);
+     - the gold sarcophagus with its mask appears, and the find glints gold;
+     - the whole square glows softly gold after that.
+   - **Every new layer on the way:** a puff of dust, a small flash and the `layer` sound. There are at most 3 flashes per answer: two for layers, one kept for the reveal.
+4. **End screen:**
+   - The camera zooms out so all 7 squares, each with its own depth and bottom layer, and the find table are in view under the panel. It reads like a small chart in the ground.
+   - The deepest square has a gold rim, and a tomb square glows gold.
+   - `celebrate()` is up to you, in `main.js`.
+5. **Unchanged:**
+   - the question at the top and the answer bar at the bottom (v10);
+   - the actors drawn at half the field's pixel size (whole screen px);
+   - your `DIG_SPEED`, winch, digger, `lift` and `start` sounds, and `RANK`;
+   - reduced motion: the end state at once.
+
+### The API (v15)
+- `mountScene(parent, opts)`, `newDay()`, `idle()`, `ready()`, `hud()`, `celebrate()`, `sound`, `DIG`, `museum`, `REACTIONS`, `BENCH_LABELS`: as before.
+- `await scene.dig(key, points, { label, benchLabel, findName })`:
+  - `points` are the points of THIS answer (0 to 100).
+  - The call resolves when the find is up, with `{ points, era, find, square }`.
+  - Any key or tap jumps to the end state.
+- `scene.setDay([{ key, points }, ...])` puts a stored day down without animation: all squares, and the finds on the table. `setFinds([...names])` still works, but gives shallow squares.
+- `scene.finds` gives one entry per square, `[{ key, points, era, find, square }]`. `era` is an index into `ERAS`. `scene.depth` is the day's total of points.
+- `ERAS` and `eraAt(points)` now go by the points of one answer.
+
+### The exact edits in `js/main.js` (v15)
+- **Files:** `index.html` loads `<link rel="stylesheet" href="kit-b/field.css">` after `layout-phone.css`. Put `kit-b/field.js` next to `dig-scene.js`.
+- **Import:** `import { mountScene, museum, DIG, ERAS, eraAt } from "../kit-b/dig-scene.js";`. Make the pit the default scene; `?scene=world` and `?scene=shaft` may stay.
+- **Dig:** `dug = scene.dig(r.key, r.pts, { label: t.reaction[r.key], benchLabel: t.benchLabel[r.key] });`, then `await dug` and remove `.wait`.
+- **A stored day:** `scene.setDay(results.map((r) => ({ key: r.key, points: r.pts })))`.
+- **End screen:**
+  - **Deepest square:**
+    ```js
+    const deep = scene.finds.reduce((a, b) => (b.points > a.points ? b : a));
+    el("p", { className: "sub", textContent: t.deepest(eraAt(deep.points).name) });
+    ```
+  - **Museum:** `museum(results.map((r, i) => ({ find: DIG[r.key].find, label: r.dig.find, era: scene.finds[i]?.era, key: r.key })))` shows the era object.
+  - **Units:** `endCurve({ ..., unit: "" })` and `rankList({ ..., unit: "" })` (points).
+- **Celebrate:** call `celebrate()` when you decide it is a high total. The ranks and the curve go by the total, as before.
+- **Unchanged:** `newDay()` at question 1, `ready()` / `idle()`, the reading time, the logbook, `?glass=`, and your `start` and `lift` sounds.
+
+### `js/strings/en.js` (v15)
+- `deepest: (era) => \`Deepest square: ${era}\``
+- Intro, for example: "Seven questions, seven squares. The rarer your answer, the deeper you dig, into older layers."
+- Optional: `eraFinds: ["Pocket watch", "Brass compass", "Knight's sword", "Roman coin", "Bronze axe", "Flint hand axe", "Golden mask"]`, passed as `mountScene(document.body, { eraFindNames: t.eraFinds })`.
+- The names of the layers and their years are in `ERAS` (`field.js`).
+
+### Not checked in v15
+- Real phones, Safari, and 375 x 470 with the keyboard open.
+- The beats were checked frozen in headless Chrome, not watched live, and the sound was not listened to.
+- **Walk between squares:** he slides to the next square in 7 steps (CSS); there is no walking animation row.
+- **Winch and digger at a square:** they are the old sprites at half pixel size. The digger can stand over the neighbouring square, and the winch's frame is wider than one square.
+- **A day of more than 7 answers:** the 8th and later answers dig the last square again.
+- **Labels at the end:** the bottom-layer name is shown only for his current square, not for all 7 squares on the end screen. The colours carry it there, and main.js shows "Deepest square".
+
+## v14: the pit becomes a real excavation field
 
 v14 goes back to the pit (`dig-scene.js`, demo `demo.html`). It is built on **your** `kit-b/dig-scene.js`, so it keeps:
 - `DIG_SPEED` 1.25;

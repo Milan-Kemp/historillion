@@ -7,10 +7,11 @@ import { loadDays, saveDay, stats } from "./progress.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
-// The 2d kit shows the excavation field (v14, dig-scene.js + field.js: a trench with one layer per era); ?scene=world the worlds (v13), ?scene=shaft the cross-section (v12, in metres).
+// The 2d kit shows the excavation field (v15, dig-scene.js + field.js: seven squares, one per answer, dug deeper into older layers the rarer the answer); ?scene=world the worlds (v13), ?scene=shaft the cross-section (v12, in metres).
 const SCENE_PARAM = new URLSearchParams(location.search).get("scene");
 const SCENE = KIT !== "kit-b" ? null : SCENE_PARAM === "world" || SCENE_PARAM === "shaft" ? SCENE_PARAM : "pit";
 const SHAFT = SCENE === "world" || SCENE === "shaft"; // a scene module of its own (world-scene.js or shaft-scene.js), with coreSample for the end screen
+if (SCENE) document.body.dataset.scene = SCENE; // css/answers.css: the field keeps its squares in view on the end screen
 const METRES = SCENE === "shaft";                    // only the cross-section counts in metres
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
@@ -267,7 +268,7 @@ function end(day, results, review = false) {
     show(
       ...(shaft ? [shaft.coreSample({ finds: scene.finds, depth: total, label: METRES ? t.coreLabel : t.worldsLabel })] : []), // the day's dig: the column (shaft) or the strip of worlds
       el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), METRES ? t.depthLabel(total) : String(total)),
-      el("p", { className: "sub", textContent: METRES ? t.reached(total, shaft.eraAt(total).name) : SHAFT ? t.reachedWorld(shaft.eraAt(total).name) : t.reachedLayer(kit.eraAt(total).name) }),
+      el("p", { className: "sub", textContent: METRES ? t.reached(total, shaft.eraAt(total).name) : SHAFT ? t.reachedWorld(shaft.eraAt(total).name) : t.deepest(kit.eraAt(Math.max(0, ...results.map((r) => r.pts))).name) }),
       ...logbook,
       // the curve and ranks run to 560 (the top 0.1 % is near 460); "One in a Historillion" starts at the tomb, 420
       endKit.endCurve({ bins: bins(dist, 20, CURVE_MAX), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, max: CURVE_MAX, topFrom: t.ranks.at(-1).from, unit: METRES ? " m" : "" }),

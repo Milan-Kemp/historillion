@@ -1,6 +1,6 @@
-/* Historillion, 2D kit v14: the excavation field (field.js + dig-scene.js). Load after theme.css and layout-phone.css. */
+/* Historillion, 2D kit v15 (v14): the excavation field (field.js + dig-scene.js). Load after theme.css and layout-phone.css. */
 #scene .site, #scene .trench, #scene .front { position: absolute; image-rendering: pixelated; }
-#scene .actors { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 78px 84px; }   /* he and his machines: moved down with the trench floor, drawn smaller about his feet */
+#scene .actors { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 78px 84px; transition: translate 0.7s steps(7); }   /* v15: he walks to the next square */   /* he and his machines: moved down with the trench floor, drawn smaller about his feet */
 #scene .tarp, #scene .flicker { display: none; }                                     /* no tarp, no lanterns: calm decor */
 
 /* the names of the layers dug through, small on the back wall (real text, 11 px on screen whatever the zoom); the layer you are in is gold */
@@ -33,4 +33,4 @@
 /* the museum (end screen): an era find drawn from the palette */
 .museum canvas.find-img { width: 48px; height: 48px; image-rendering: pixelated; }
 
-@media (prefers-reduced-motion: reduce) { #scene .find-wrap.glint .efind,  }
+@media (prefers-reduced-motion: reduce) { #scene .actors { transition: none; } #scene .find-wrap.glint .efind,  }

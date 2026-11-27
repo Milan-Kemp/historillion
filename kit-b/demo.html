@@ -32,8 +32,9 @@
     const sentences = { common: "You dug up a pottery shard with a brush.", uncommon: "You dug up a coin with a pickaxe.", rare: "You dug up a crown with a small excavator.", veryRare: "You dug up a statue with a dump truck.", none: "You dug up just a rock with a spoon." };
     const rarity = { common: "Common answer. 41% of players gave it.", uncommon: "Uncommon answer. 17% of players gave it.", rare: "Rare answer. 6% of players gave it.", veryRare: "Very rare answer. Under 1% of players gave it.", none: "No valid answer." };
     const rarityShort = { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "No answer" };
-    const points = { common: 30, uncommon: 55, rare: 75, veryRare: 96, none: 0 };
-    const DAY = [{ key: "common", points: 22 }, { key: "uncommon", points: 51 }, { key: "rare", points: 78 }, { key: "common", points: 30 }, { key: "veryRare", points: 97 }, { key: "none", points: 0 }, { key: "uncommon", points: 48 }];
+    const points = { common: 28, uncommon: 45, rare: 72, veryRare: 94, none: 0 };   // v15: the points of ONE answer (0 to 100)
+    const DAY = [{ key: "common", points: 24 }, { key: "uncommon", points: 46 }, { key: "common", points: 31 }, { key: "rare", points: 66 }, { key: "common", points: 22 }, { key: "none", points: 0 }, { key: "uncommon", points: 38 }];   // an average day
+    if (q.has("tomb")) DAY[3] = { key: "veryRare", points: 93 };   // &tomb=1: one answer reached the golden tomb
     const LONG = q.has("long");                              // &long=1: the longest question and a long explanation, with accents and apostrophes
     const QUESTION = LONG ? "Name an explorer from the Age of Discovery (c. 1400 to 1600). Álvares Cabral and Ch’in-era admirals count too." : "Which Roman emperor is said to have played music while Rome burned?";
     const EXPLAIN = LONG ? "Vasco da Gama reached India by sea in 1498, Pedro Álvares Cabral landed in Brazil in 1500, and Ferdinand Magellan’s expedition completed the first circumnavigation (1519 to 1522), although Magellan himself died in the Philippines. Zheng He’s treasure fleets of the early 1400s were larger than any European fleet of the time." : "Nero was said to have played the lyre, but the fiddle did not exist yet.";
@@ -103,8 +104,7 @@
       if (q.has("finds")) scene.setFinds(FIND_LIST.slice(0, Number(q.get("finds"))));
       const keys = ["common", "uncommon", "rare", "veryRare", "none", "rare", "common"];
       const bins = fakeBins();
-      if (q.get("score")) scene.setDay([{ key: "veryRare", points: Number(q.get("score")) }]);
-      else if (!scene.depth) scene.setDay(DAY);
+      if (!scene.finds.length) scene.setDay(DAY);
       const score = scene.depth;
       const pctl = bins.filter((b) => b.to <= score).reduce((s, b) => s + b.p, 0);
       const prompts = ["Name a sport where you're allowed to kick the ball", "Name a country that has an A as its second letter", "Name a city on an island (towns count too)", "Name an album by an artist with more than 1 million monthly listeners", "Name an animal with webbed feet", "Name a video game company", "Name a form medicine comes in (like a pill)"];
@@ -117,7 +117,7 @@
         nextDig({ label: "Next dig in" }),
         ...(q.has("answers") ? [answersMock()] : []),
         el("button", { textContent: "Play again", onclick: intro }));
-      if (score >= 420) scene.celebrate();                      // v14: the golden tomb, one in 100 (after scene.reset())
+      if (scene.finds.some((f) => f.points >= 85)) scene.celebrate();   // v15 demo: a square reached the tomb (in the game main.js decides, e.g. on a high total)
     }
     // for tests and screenshots: the zoom, the stage position and the boxes of the panels, written into body[data-fit] after layout
     const report = () => { const sc = document.getElementById("scene"); const r = (e) => { const b = e?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)] : null; };
