@@ -82,3 +82,6 @@ body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="
 
 /* After an answer in the field: the layer this square reached ("Dug down to: Stone Age"), small, under the points. */
 body:not(.no-hud):not(.phase-end) main > p.era-line { margin: calc(-1 * var(--sp-2, 8px)) 0 var(--sp-2, 8px); font: 700 var(--fs-small, 14px)/1.3 var(--font-text, sans-serif); letter-spacing: .06em; text-transform: uppercase; color: var(--cream-dark, #dcc89c); }
+/* The field on a wide screen: the end panel sits in the middle of the height, left of the seven squares (the field is centred, at most ~350 px each side of the middle at pixel scale 3).
+   shortcut: assumes pixel scale <= 3; on very tall screens (scale 4) the panel may touch the camp at the field's left edge. */
+@media (min-width: 1600px) { body.phase-end.no-hud[data-scene="pit"] main { left: 24px; right: auto; width: min(30rem, calc(50vw - 400px)); margin: auto 0; top: 0; bottom: 0; height: fit-content; max-height: min(82vh, calc(var(--vh, 100dvh) - 40px)); } }
