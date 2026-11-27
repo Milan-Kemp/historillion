@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Historillion, 2D kit: the worlds through time (v13)</title>
+  <link rel="icon" href="brand/favicon.png">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="layout-phone.css">
+  <link rel="stylesheet" href="world.css">
+</head>
+<body>
+  <main id="app"></main>
+  <script type="module">
+    // A tiny fake game that uses the v13 kit the way main.js should. ?screen=intro|ask|common|uncommon|rare|veryRare|none|end; &day=4 starts with the first 4 answers of DAY dug;
+    // &still=1 final frames at once; &score=330 for the end screen; &pts=330 stand in that world. Strings here stand in for js/strings/en.js.
+    import { mountScene, eraAt, coreSample } from "./world-scene.js";
+    import { endCurve, rankList, findsList, nextDig, RANKS } from "./end-screen.js";
+    const q = new URLSearchParams(location.search);
+    const app = document.getElementById("app");
+    const scene = mountScene(document.body, { still: q.has("still") });
+    const el = (tag, props = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(props)) (k in n ? (n[k] = v) : n.setAttribute(k, v)); n.append(...kids); return n; };
+    const show = (...nodes) => app.replaceChildren(...nodes);
+    const QUESTION = "Which Roman emperor is said to have played music while Rome burned?";
+    const EXPLAIN = "Nero was said to have played the lyre, but the fiddle did not exist yet.";
+    const WORD = { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "Nothing" };
+    const POINTS = { common: 30, uncommon: 55, rare: 75, veryRare: 96, none: 0 };
+    const DAY = [{ key: "common", points: 22 }, { key: "uncommon", points: 51 }, { key: "rare", points: 78 }, { key: "common", points: 30 }, { key: "veryRare", points: 97 }, { key: "none", points: 0 }, { key: "uncommon", points: 48 }];
+    let qn = 1;
+    const hud = (extra = {}) => scene.hud({ progress: { current: qn, total: 7 }, counter: `Question ${qn} of 7`, score: `${scene.depth}`, soundLabel: "Sound", ...extra });
+    if (q.has("day")) scene.setDay(DAY.slice(0, Number(q.get("day"))));
+    if (q.has("pts")) scene.setDay([{ key: "rare", points: Number(q.get("pts")) }]);   // &pts=330: stand in the world of that score
+
+    function intro() {
+      scene.hud(null);
+      show(el("h1", { textContent: "Historillion" }), el("p", { textContent: "Seven history questions. The rarer your answer, the further back in time you dig." }),
+        el("button", { textContent: "Start", onclick: () => { scene.newDay(); qn = 1; ask(); } }));
+    }
+    function ask() {
+      const timer = el("p", { className: q.has("reading") ? "timer reading" : "timer", role: "timer", textContent: q.has("reading") ? "Read 3" : "25" });
+      const input = el("input", { type: "text", placeholder: "Type your answer", "aria-label": QUESTION });
+      const form = el("form", {}, input, el("button", { type: "submit", textContent: "Dig" }));
+      form.onsubmit = (e) => { e.preventDefault(); scene.sound.play("submit"); feedback(["common", "uncommon", "rare", "veryRare", "none"][Math.floor(Math.random() * 5)]); };
+      hud({ timer });
+      qn === 1 ? scene.ready() : scene.idle();
+      show(el("h2", { textContent: QUESTION }), form, el("p", { className: "msg", role: "status" }));
+      if (!q.has("nofocus")) input.focus();
+    }
+    function feedback(key) {
+      const pts = POINTS[key];
+      const waiting = [el("p", { className: "rarity-word wait", textContent: WORD[key] }), el("p", { className: "points wait", textContent: `+${pts}` }),
+        el("p", { className: "rarity-line wait", textContent: `${WORD[key]} answer.` }), el("p", { className: "explain wait", textContent: EXPLAIN })];
+      waiting[0].dataset.key = key;
+      show(el("h2", { textContent: QUESTION }), el("p", { className: "your-answer", textContent: "Your answer: nero" }), ...waiting,
+        el("button", { textContent: "Next", onclick: () => { if (++qn > 7) end(); else ask(); } }));
+      hud();
+      scene.dig(key, pts).then(() => { waiting.forEach((n) => n.classList.remove("wait")); hud(); });   // the result waits until the find is out of the ground
+    }
+    function end() {
+      scene.hud(null);
+      scene.reset();
+      scene.sound.play("finish");
+      if (q.get("score")) scene.setDay([{ key: "rare", points: Number(q.get("score")) }]);
+      const score = scene.depth;
+      const bins = []; for (let f = 0; f < 700; f += 25) bins.push({ from: f, to: f + 25, p: Math.exp(-((f + 12.5 - 300) ** 2) / 28800) });
+      const sum = bins.reduce((s, b) => s + b.p, 0); bins.forEach((b) => (b.p /= sum));
+      show(coreSample({ finds: scene.finds, depth: score }), el("h1", { className: "total" }, el("span", { className: "sr", textContent: "Score: " }), `${score}`), el("p", { className: "sub", textContent: `You reached ${eraAt(score).name}` }),
+        endCurve({ bins, total: score, percentile: bins.filter((b) => b.to <= score).reduce((s, b) => s + b.p, 0), unit: "" }), rankList({ total: score, ranks: RANKS, unit: "" }),
+        nextDig({ label: "Next dig in" }), el("button", { textContent: "Play again", onclick: intro }));
+      if (score >= 420) scene.celebrate();
+    }
+    const s = q.get("screen") ?? "intro";
+    if (s === "intro") intro(); else if (s === "ask") ask(); else if (s === "end") end(); else { qn = Number(q.get("day") || 0) + 1; ask(); feedback(s); }
+  </script>
+</body>
+</html>

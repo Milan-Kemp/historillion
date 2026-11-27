@@ -1,10 +1,132 @@
-# 2D kit, v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
+# 2D kit, v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v12 (this version): the cross-section, clear and calm
+## v13 (this version): digging = travelling back in time
+
+The cross-section is gone. Every era is a pixel world of its own in the kit's style, and the archaeologist **digs a pit in it**. Every answer takes the pit deeper by its points: more points, more swings, a deeper pit. A dotted gold line in the ground marks the bottom of the world. When the pit reaches it, the floor breaks and light comes up from below. He jumps in, drops into the older world (its name shows big for a moment) and digs on there with the rest of his points. So the pit shows how far you are in an era, and only enough points take you to the next one. The world you stand in is your depth; there is no 0 to 700 metre scale any more.
+
+New files:
+- `world-scene.js` replaces `shaft-scene.js` and keeps the same API.
+- `world.css` replaces `shaft.css`.
+- The demo is `world.html`:
+  - `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`
+  - `&day=4`
+  - `&pts=330`: stand in the world of that score
+  - `&score=455`: the end screen
+  - `&still=1`
+
+`shaft-scene.js`, `shaft.css` and `shaft.html` stay for reference.
+
+Previews, made with the script `_build/shots13.py`:
+- `2d/previews/v13-375-sheet.png`, `v13-462-sheet.png` and `v13-1440-sheet.png`: intro, question, after common, after very rare, end screen.
+- `v13-375-worlds.png` and `v13-1440-worlds.png`: a question in each of the seven worlds.
+- `v13-375-tomb-end.png`: the end screen at the tomb, with confetti.
+
+1. **Seven worlds.** All are drawn in code from the channel palette, at 640 x 240 art px. Each has a back layer that moves slower than the front, for depth, and a few things that move 8 times a second.
+   - Modern: a brick city at a smoky dusk, with factory chimneys, gas lamps and a steam train on the embankment.
+   - Early modern: a harbour in daylight, with two sailing ships that bob, gabled renaissance houses and a domed church.
+   - Medieval: a golden morning, with a castle on the hill and a cathedral being built (scaffolding, a treadwheel crane that turns, a stone block on its rope).
+   - Roman & Classical: a temple and a colonnade on the forum, a bronze statue, and the amphitheatre and an aqueduct beyond.
+   - Bronze & Iron Age: pyramids, a ziggurat, palms, mud-brick houses, an obelisk and the desert sun.
+   - Stone Age: a starry night, a cave with animal paintings and hand prints, a fire, and a circle of standing stones on the hill.
+   - **One in a Historillion**, the hidden golden tomb: torches, beams of light, invented glyphs, heaps of gold and a golden sarcophagus.
+2. **Borders as a parameter.** `ERAS[i].from` is in points:
+   - Modern 0
+   - Early modern 80
+   - Medieval 160
+   - Roman 230
+   - Bronze/Iron 300
+   - Stone 360
+   - tomb 420
+
+   These are wider than the briefing's 0, 100, 200, 260, 310, 360, 420. The later eras were only 50 points deep, so with 0 to 100 points a question one good answer nearly always crossed one. Now every era is 60 to 80 points deep and the tomb stays at 420. Earlier borders mean more players reach Medieval, Rome and the Bronze Age than the briefing's 90 %, 60 % and 1 in 4. Check this against your real score spread.
+
+   Change them in that one place. `eraAt(points)` returns the era, and `scene.finds[i].era` is its index.
+3. **The pit is the score inside an era.**
+   - He digs at one spot in each world, with the pit just right of him.
+   - The pit's depth is the share of the era done: empty at the start, 46 art px at the gold line (the tomb counts 120 points).
+   - The camera keeps the whole pit, down to the gold line, in view.
+   - A score that crosses one or two borders breaks through each world in turn.
+4. **The beat after an answer.**
+   - Swings of the pickaxe, each taking the pit a step deeper with a `hit`: none 2, common 3, uncommon 4 (plus a small shake), rare 5, very rare 6.
+   - For each new world on the way:
+     - three quick swings to the bottom;
+     - the floor turns to gold light, with a flash, a shake and `rumble`;
+     - he jumps into the pit behind a cloud of dust (`layer`);
+     - he drops into the new world from above (`thud`), and its name shows big on a dark plate.
+   - rare: before the swings, the camera moves one whole zoom step in and the vignette closes round him (the v7 `dim-tight` of theme.css). There is a short flash at the end.
+   - veryRare (about 4 to 6 s):
+     - a rumble;
+     - the camera dives in two zoom steps;
+     - the last swings play in slow motion, and the world's own animation slows down too;
+     - a full white flash and a fanfare (`finish` plus `reveal-veryRare`).
+
+   Rare and very rare stay one step closer until the next question.
+
+   There are at most 3 flashes per answer, well under 3 a second.
+
+   Any key or tap jumps to the end. The Promise resolves when the find is shown.
+5. **One find per answer, at most.** A 12 x 12 object from that world pops up on the rim of the pit:
+   - pocket watch
+   - brass compass
+   - knight's sword
+   - Roman helmet
+   - bronze axe
+   - flint hand axe
+   - golden mask
+   - a plain rock for "none"
+
+   Rare and very rare finds get a gold frame; the very rare one blinks. The find goes away when the next question comes. There are no finds in a wall any more.
+6. **The world you are in** shows as a small chip at the top left of the free area: the name in gold, the years, and seven pips (worlds done in gold, the current one in cream).
+   - It is the only "depth" readout.
+   - `world.css` hides the top bar's score, as in v12.
+   - The chip is hidden on the intro and end screen, and when the free area is under 110 px (keyboard open).
+7. **End screen.** You stand in your farthest world.
+   - **Fly-over:** when the game goes from the last question to the end screen (`scene.hud(null)` after a shown top bar), the camera makes a short fly-over (2.6 s) from the far end of that world back to him.
+   - **Celebration:** `scene.celebrate()` adds confetti and the cheering man. The demo calls it from 420, the tomb.
+   - **The strip:** `coreSample({ finds, depth, label })` is now a strip of the seven worlds (`figure.wstrip`, role img, with an aria label):
+     - each reached world is a small picture of its landmark, with a gold dot per find made there;
+     - the farthest one has a gold frame;
+     - the rest are dark with a "?";
+     - the name and years of the farthest world are underneath.
+8. **Unchanged:**
+   - the question and the answer bar of v10;
+   - the calm result strip above Next of v12 (copied into `world.css`);
+   - the top bar;
+   - `sound.js`: no new sounds; the kit uses `hit`, `layer`, `rumble`, `thud`, `swell-rare`, `finish` and `reveal-*`, which all exist;
+   - reduced motion: the end state shows at once and nothing moves (one still frame of each world, no flashes, no fly-over).
+
+### The exact edits in `js/main.js` (v13)
+- Change the import to `import { mountScene, eraAt, ERAS, coreSample } from "../kit-b/world-scene.js";` (it was `shaft-scene.js`).
+- In `index.html`, use `<link rel="stylesheet" href="kit-b/world.css">` instead of `shaft.css`.
+- **Metres:** wherever you show metres (the points line `+45 m`, the end total, `hud({ score })`), show points instead, or nothing; the world is the depth now.
+  - `endCurve({ ..., unit: "" })` and `rankList({ ..., unit: "" })` drop the " m".
+  - The curve's `max` (700) and `topFrom` (640) and the RANKS ranges still come from your data. Set them to the v13 spread if you change it (the tomb is at 420).
+- Call `celebrate()` for a top score as before. In v13 the tomb (420 and up) is the natural moment.
+- Nothing else changes:
+  - `scene.dig(key, points)` still returns the Promise (remove `.wait` after it);
+  - `setDay`, `newDay`, `idle`, `ready`, `hud`, `celebrate` and `sound` are the same;
+  - the reading time, the logbook, `?glass=`, `?scene=pit` and your `start`, `lift` and `layer` sounds stay as they are.
+
+### `js/strings/en.js` (v13)
+- If the intro text mentions metres, change it to: "The rarer your answer, the further back in time you dig."
+- Optional: add `` coreLabel: (p, era, n) => `Today's dig reached ${era} with ${n} finds` `` and pass `label: t.coreLabel` to `coreSample`.
+- The era names and years still live in `ERAS` in the kit.
+
+### Not checked in v13
+- Real phones and Safari: `body:has()` hides the top-bar score, which needs Safari 15.4+.
+- 375 x 470 with the keyboard open: the chip hides itself there, but I did not look.
+- Animations and sound:
+  - the animations were checked frame by frame in headless Chrome and in a hidden, throttled browser pane, not live on a device;
+  - the sounds were not listened to.
+- Contrast was computed, not measured with the A/B tool. Chip and title text is cream or gold on almost opaque rgb(14, 8, 18), which gives more than 12:1.
+- The end-screen curve and ranks in the demo still use the old 0 to 700 spread.
+- The world art is a first pass drawn in code, without the `assets/` sprites. The tomb and the Stone Age are the most sketchy.
+
+## v12: the cross-section, clear and calm
 
 Same API, hooks and flow as v11 (`scene.dig(key, points)` Promise, `newDay`, `setDay`, `depth`, `finds`, `ERAS`, `eraAt`). Files changed: `shaft-scene.js`, `shaft.css`, `end-screen.js`, demo `shaft.html`. Previews: `2d/previews/v12-375-sheet.png`, `v12-462-sheet.png`, `v12-1440-sheet.png` (intro, question, after common, after very rare, end screen); script `_build/shots12.py`.
 1. **Depth bar** (left edge of the free area, between the question and the answer bar): 0 to 700 m in the six era colours, the part not dug yet darker, a gold marker with the metres ("277 m", it blinks at a new era), and under it the goal "700 m, One in a Historillion". It is the only depth readout while playing: the ground meter is gone and `shaft.css` hides the top bar's score (`visibility: hidden`, so the progress squares stay centred). Hidden on the intro/end screen and when the free area is under 150 px (keyboard open).

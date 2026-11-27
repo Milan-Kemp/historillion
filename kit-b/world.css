@@ -1,0 +1,71 @@
+/* Historillion, 2D kit v13: the worlds (world-scene.js). Load after theme.css and layout-phone.css, instead of shaft.css. */
+#scene.wscene { background: #1e1846; }
+#scene .wlayer { position: absolute; left: 0; top: 0; width: 640px; height: 240px; transform-origin: 0 0; }
+#scene .wcv { position: absolute; left: 0; top: 0; image-rendering: pixelated; }
+#scene .wfloor { position: absolute; left: -640px; top: 239px; width: 1920px; height: 600px; }   /* the ground goes on below the picture on tall screens */
+#scene .wman, #scene .witem { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#scene .wman.walking { animation: wbob 0.24s steps(1) infinite; }                     /* he bobs a pixel as he walks */
+@keyframes wbob { 50% { top: -1px; } }
+#scene.wscene.rumble { animation: srumble 0.12s steps(2) infinite; }                  /* uncommon and very rare: the ground shakes 2 px */
+@keyframes srumble { 50% { translate: 2px 1px; } }
+
+/* the find of this answer: one thing from this world, next to him */
+#scene .witem canvas { display: none; image-rendering: pixelated; }
+#scene .witem.on canvas { display: block; }
+#scene .witem.pop canvas { animation: witem-pop 0.5s steps(5) both; }               /* it comes up out of the ground */
+@keyframes witem-pop { from { transform: translateY(12px) scale(0.2); } 60% { transform: translateY(-4px) scale(1.2); } to { transform: none; } }
+#scene .witem.rare canvas, #scene .witem.veryRare canvas { outline: 1px solid var(--gold-lit); outline-offset: 1px; }
+#scene .witem.veryRare.pop canvas { animation: witem-pop 0.5s steps(5) both, witem-blink 0.5s steps(2) 0.5s 4; }
+@keyframes witem-blink { 50% { outline-color: transparent; } }
+
+/* a new world: a cloud of dust and a flash (opacity stepped by world-scene.js; never more than 3 flashes a second) */
+#scene .wdust { position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: repeating-conic-gradient(#dcc89c 0 25%, transparent 0 50%) 0 0 / calc(var(--s, 2) * 2px) calc(var(--s, 2) * 2px), rgba(190, 168, 128, 0.55); }
+#scene .wflash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: #faf6eb; }
+
+/* the world you are in (the only "depth" readout while playing; the top bar's score is hidden, it said the same) */
+body:has(> #scene.wscene) #hud .hud-score { visibility: hidden; }
+.era-chip { position: fixed; z-index: 1; left: var(--col-l, 12px); top: calc(var(--qb, 160px) + 6px); display: flex; flex-direction: column; gap: 2px; padding: 6px 10px 7px; max-width: calc(100vw - 2 * var(--col-l, 12px));
+  background: rgba(14, 8, 18, 0.88); border-radius: 8px; pointer-events: none; }
+.era-chip[hidden] { display: none; }
+.era-chip b { font: 700 var(--fs-small)/1.1 var(--font-display); color: var(--gold-lit); text-transform: uppercase; }
+.era-chip > span:not(.pips) { font: 700 var(--fs-micro)/1.2 var(--font-text); color: var(--cream); }
+.era-chip .pips { display: flex; gap: 3px; margin-top: 3px; }
+.era-chip .pips i { width: 7px; height: 7px; background: #2e1e56; box-shadow: inset 0 0 0 1px #5c3068; }
+.era-chip .pips i.done { background: var(--gold); box-shadow: none; }
+.era-chip .pips i.now { background: var(--cream); box-shadow: none; }
+.era-chip.gold .pips i.now { background: var(--gold-lit); }
+
+/* the name of a new world, big for a moment */
+.era-title { position: fixed; z-index: 1; left: 50%; top: calc(var(--qb, 160px) + 64px); translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 16px 12px;
+  max-width: calc(100vw - 2 * var(--col-l, 12px)); background: rgb(14, 8, 18); border-radius: 10px; text-align: center; pointer-events: none; opacity: 0; }
+.era-title[hidden] { display: none; }
+.era-title.on { animation: era-title 2s steps(10) both; }
+@keyframes era-title { 0% { opacity: 0; transform: scale(0.6); } 12% { opacity: 1; transform: scale(1.08); } 20% { transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.era-title b { font: 700 var(--px-2)/1.1 var(--font-display); color: var(--cream); text-transform: uppercase; }
+.era-title span { font: 700 var(--fs-small)/1.2 var(--font-text); color: var(--gold-lit); }
+.era-title.gold b { color: var(--gold-lit); }
+
+/* the result after an answer: a calm strip of its own just above Next, never straight over the world (as in v12) */
+body.phase-feedback:not(.no-hud):not(.phase-end) main { display: flex; flex-direction: column; bottom: calc(var(--bar-bottom) + var(--bar-h) + 8px); max-height: none; overflow: visible; pointer-events: none; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > * { pointer-events: auto; }
+body:not(.no-hud):not(.phase-end) main::before { bottom: auto; height: calc(var(--qb, 160px) + 6px); background: linear-gradient(rgba(8, 4, 16, 0.9), rgba(8, 4, 16, 0.86) calc(100% - 12px), rgba(8, 4, 16, 0)); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word { margin: auto 0 0; padding: 14px 12px 2px; background: rgb(14, 8, 18); border-radius: 12px 12px 0 0; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > .points { margin: 0; padding: 4px 12px 8px; background: rgb(14, 8, 18); }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > .explain { max-width: none; margin: 0; padding: 0 14px 14px; background: rgb(14, 8, 18); border-radius: 0 0 12px 12px; opacity: 1; }
+body.phase-feedback:not(.no-hud):not(.phase-end) main > .points:last-child { padding-bottom: 14px; border-radius: 0 0 12px 12px; }
+html.compact body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word { font-size: var(--px-3); padding-top: 8px; }
+
+/* the end screen: the strip of worlds (coreSample()) */
+.wstrip { display: grid; grid-template-columns: repeat(7, 44px); justify-content: center; gap: 4px; margin: 0 auto var(--sp-3); }
+.wtile { position: relative; width: 44px; height: 60px; background: #121234; outline: 1px solid #0e0a18; }
+.wtile canvas { display: block; image-rendering: pixelated; }
+.wtile.far { outline: 2px solid var(--gold-lit); outline-offset: 1px; }
+.wtile.locked b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 var(--fs-body)/1 var(--font-display); color: #827a96; }
+.wdots { position: absolute; left: 2px; right: 2px; bottom: 2px; display: flex; flex-wrap: wrap; gap: 2px; }
+.wdots i { width: 5px; height: 5px; background: var(--gold); box-shadow: 0 0 0 1px #0e0a18; }
+.wstrip figcaption { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; margin-top: 6px; }
+.wstrip figcaption b { font: 700 var(--fs-small)/1.2 var(--font-display); color: var(--gold-lit); text-transform: uppercase; }
+.wstrip figcaption span { font: 700 var(--fs-micro)/1.2 var(--font-text); color: var(--cream); }
+
+@media (prefers-reduced-motion: reduce) { #scene.wscene.rumble, #scene .wman.walking, #scene .witem canvas, .era-title.on { animation: none !important; } .era-title.on { opacity: 0; } }

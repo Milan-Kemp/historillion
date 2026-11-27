@@ -7,8 +7,11 @@ import { loadDays, saveDay, stats } from "./progress.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
-// The 2d kit shows the cross-section dig (v11, deeper = rarer); ?scene=pit shows the earlier pit with the archaeologist and the bench.
-const SHAFT = KIT === "kit-b" && new URLSearchParams(location.search).get("scene") !== "pit";
+// The 2d kit shows the worlds (v13: digging = travelling back in time); ?scene=shaft the cross-section (v12, in metres), ?scene=pit the earlier pit with the bench.
+const SCENE_PARAM = new URLSearchParams(location.search).get("scene");
+const SCENE = KIT !== "kit-b" ? null : SCENE_PARAM === "pit" || SCENE_PARAM === "shaft" ? SCENE_PARAM : "world";
+const SHAFT = SCENE === "world" || SCENE === "shaft"; // both have the same API: dig(key, points) returns a Promise, setDay, coreSample
+const METRES = SCENE === "shaft";                    // only the cross-section counts in metres
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
 // How see-through the panels are. Default: very light glass. ?glass=clear (no background, no blur), ?glass=soft (the previous light glass),
@@ -26,10 +29,10 @@ if (KIT === "kit-b") {
   layout.href = "kit-b/layout-phone.css";
   document.getElementById("theme").after(layout);
   const sheets = [layout];
-  if (SHAFT) { // shaft.css comes right after layout-phone.css
+  if (SHAFT) { // world.css or shaft.css comes right after layout-phone.css
     const shaftCss = document.createElement("link");
     shaftCss.rel = "stylesheet";
-    shaftCss.href = "kit-b/shaft.css";
+    shaftCss.href = `kit-b/${SCENE}.css`;
     layout.after(shaftCss);
     sheets.push(shaftCss);
   }
@@ -38,16 +41,17 @@ if (KIT === "kit-b") {
 const kit = await import(`../${KIT}/dig-scene.js`);
 const { museum, DIG } = kit;
 // Only the 2d kit has mountScene (fullscreen scene). The 8-bit kit has digScene (a picture inside the panel).
-// DIG (which find goes with which rarity) and museum() still come from dig-scene.js; the scene itself from shaft-scene.js when SHAFT.
-const shaft = SHAFT ? await import(`../${KIT}/shaft-scene.js`) : null;
+// DIG (which find goes with which rarity) and museum() still come from dig-scene.js; the scene itself from world-scene.js or shaft-scene.js.
+const shaft = SHAFT ? await import(`../${KIT}/${SCENE}-scene.js`) : null;
 const scene = (shaft ?? kit).mountScene?.(document.body, { benchLabels: t.benchLabel });
-const scoreText = (n) => (shaft ? t.depthLabel(n) : t.scoreLabel(n)); // in the cross-section the score IS the depth
+const scoreText = (n) => (METRES ? t.depthLabel(n) : t.scoreLabel(n)); // in the cross-section the score IS the depth
 // The new end screen (curve, ranks, finds list) only exists in the 2d kit.
 const endKit = scene ? await import(`../${KIT}/end-screen.js`) : null;
 
 // ?replay=1 is for testing: play today's dig again, nothing is saved.
 const REPLAY = new URLSearchParams(location.search).has("replay");
 const SECONDS = 25;
+const CURVE_MAX = 560;
 const READ_SECONDS = 3; // time to read the question before the clock starts
 const app = document.getElementById("app");
 
@@ -97,7 +101,7 @@ function intro(day) {
     const results = today.map((r) => ({ ...r, typed: r.typed ?? "", dig: t.dig[r.key] }));
     show(
       el("h1", { textContent: t.title }),
-      el("p", { textContent: (shaft ? t.dugToday : t.doneToday)(results.reduce((x, r) => x + r.pts, 0)) }),
+      el("p", { textContent: (METRES ? t.dugToday : t.doneToday)(results.reduce((x, r) => x + r.pts, 0)) }),
       ...logbook,
       ...(endKit ? [endKit.nextDig({ label: t.nextDig })] : []),
       el("button", { textContent: t.viewResults, onclick: () => end(day, results, true) }),
@@ -106,8 +110,8 @@ function intro(day) {
   }
   show(
     el("h1", { textContent: t.title }),
-    el("p", { textContent: shaft ? t.taglineDepth : t.tagline }),
-    el("p", { textContent: shaft ? t.howDepth : t.howScoring }),
+    el("p", { textContent: METRES ? t.taglineDepth : SHAFT ? t.taglineWorlds : t.tagline }),
+    el("p", { textContent: METRES ? t.howDepth : SHAFT ? t.howWorlds : t.howScoring }),
     ...logbook,
     el("button", { textContent: t.start, onclick: () => { scene?.sound.play("start"); ask(day, 0, []); } }),
   );
@@ -220,7 +224,7 @@ function feedback(day, i, results) {
       el("h2", { textContent: r.prompt }),
       el("p", { className: "your-answer", textContent: `${t.yourAnswer}: ${typed}${counted}` }),
       word,
-      el("p", { className: "points wait", textContent: shaft ? t.metres(r.pts) : `+${r.pts}` }),
+      el("p", { className: "points wait", textContent: METRES ? t.metres(r.pts) : `+${r.pts}` }),
       el("p", { className: "rarity-line wait", textContent: rarityLine }),
       el("p", { className: "dig wait", textContent: t.youDug(r.dig.tool, r.dig.find) }),
       el("p", { className: "explain wait", textContent: r.text }),
@@ -282,14 +286,15 @@ function end(day, results, review = false) {
     // The curve is an estimate from predicted answer shares (no real players yet); endCurve prints that too.
     const dist = scoreDistribution(day);
     show(
-      ...(shaft ? [shaft.coreSample({ finds: scene.finds, depth: total, label: t.coreLabel })] : []), // the day's dig as a slim column, 0 to 700 m
-      el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), shaft ? t.depthLabel(total) : String(total)),
-      el("p", { className: "sub", textContent: shaft ? t.reached(total, shaft.eraAt(total).name) : t.totalLabel }),
+      ...(shaft ? [shaft.coreSample({ finds: scene.finds, depth: total, label: METRES ? t.coreLabel : t.worldsLabel })] : []), // the day's dig: the column (shaft) or the strip of worlds
+      el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), METRES ? t.depthLabel(total) : String(total)),
+      el("p", { className: "sub", textContent: METRES ? t.reached(total, shaft.eraAt(total).name) : SHAFT ? t.reachedWorld(shaft.eraAt(total).name) : t.totalLabel }),
       ...logbook,
-      endKit.endCurve({ bins: bins(dist), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, unit: shaft ? " m" : "" }),
-      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle, unit: shaft ? " m" : "" }),
+      // the curve and ranks run to 560 (the top 0.1 % is near 460); "One in a Historillion" starts at the tomb, 420
+      endKit.endCurve({ bins: bins(dist, 20, CURVE_MAX), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, max: CURVE_MAX, topFrom: t.ranks.at(-1).from, unit: METRES ? " m" : "" }),
+      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle, unit: METRES ? " m" : "" }),
       resultsList({
-        day, t: shaft ? { ...t, pointsShort: "m", plus: t.metres } : t, spriteUrl: (name) => `${KIT}/sprites/finds/${name}.png`,
+        day, t: METRES ? { ...t, pointsShort: "m", plus: t.metres } : t, spriteUrl: (name) => `${KIT}/sprites/finds/${name}.png`,
         results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, name: r.name, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })),
       }),
       endKit.nextDig({ label: t.nextDig }),

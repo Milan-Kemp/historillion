@@ -34,7 +34,7 @@ npm test
 ## Style kits
 `kit/` is the 8-bit style (default), `kit-b/` the fullscreen 2d style with the animated archaeologist, sound, the kept finds bench and the new end screen. Open `?kit=b`, for example `/?day=2026-12-01&kit=b`. Both have the same hooks, so the choice is one folder. When one wins, delete the other and the `KIT` lines at the top of `js/main.js`. Rules for each style are in `kit/STYLE.md` and `kit-b/STYLE.md`; the 2d kit also has `kit-b/FULLSCREEN.md` (API and notes) and `kit-b/demo.html`.
 
-Two scenes in the 2d kit: the cross-section dig (`kit-b/shaft-scene.js` + `kit-b/shaft.css`, v11: each answer digs the day's shaft deeper by its points, one layer per era, the score is the depth in metres) is the default; add `&scene=pit` for the earlier pit with the archaeologist, the machines and the bench (`kit-b/dig-scene.js`). `DIG` and `museum()` still come from `dig-scene.js` in both.
+Three scenes in the 2d kit. Default: the worlds (`kit-b/world-scene.js` + `kit-b/world.css`, v13): every answer digs deeper, and enough points break through to an older world (borders in `ERAS[].from`: 0, 80, 160, 230, 300, 360, the golden tomb at 420). `&scene=shaft` shows the cross-section in metres (v12), `&scene=pit` the earlier pit with the bench (`kit-b/dig-scene.js`). `DIG` and `museum()` come from `dig-scene.js` in all three. The ranks in `js/strings/en.js` and the end curve (0 to 560) follow the expected score spread: half the players end near 270, the top 1 % above 410.
 
 Panel transparency of the 2d kit (add to the address): default is very light glass, `&glass=soft` the previous light glass, `&glass=clear` no panel background at all, `&glass=classic` the kit's own darker glass.
 
