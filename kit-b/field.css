@@ -1,0 +1,36 @@
+/* Historillion, 2D kit v14: the excavation field (field.js + dig-scene.js). Load after theme.css and layout-phone.css. */
+#scene .site, #scene .trench, #scene .front { position: absolute; image-rendering: pixelated; }
+#scene .actors { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 78px 84px; }   /* he and his machines: moved down with the trench floor, drawn smaller about his feet */
+#scene .tarp, #scene .flicker { display: none; }                                     /* no tarp, no lanterns: calm decor */
+
+/* the names of the layers dug through, small on the back wall (real text, 11 px on screen whatever the zoom); the layer you are in is gold */
+#scene .era-tags { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#scene .era-tags p { position: absolute; margin: 0; translate: -100% 0; white-space: nowrap; font: 700 calc(11px / var(--s, 3)) / 1 var(--font-text); text-transform: uppercase; color: var(--cream);
+  padding: calc(2px / var(--s, 3)) calc(4px / var(--s, 3)); background: rgba(14, 8, 18, 0.86); border-radius: calc(4px / var(--s, 3)); }
+#scene .era-tags p.here { color: var(--gold-lit); box-shadow: 0 0 0 calc(1px / var(--s, 3)) var(--gold-lit); }   /* the layer he is digging now */
+#scene .era-tags p.new { animation: tag-new 0.5s steps(2) 3; }
+@keyframes tag-new { 50% { background: rgba(140, 84, 28, 0.95); } }
+
+/* the find of this answer: half buried in the trench floor, then lifted out; very rare: it glints gold */
+#scene .efind { position: absolute; left: 114px; top: 44px; width: 12px; height: 12px; }
+#scene .efind canvas { display: block; image-rendering: pixelated; }
+#scene .efind.buried { clip-path: inset(0 0 45% 0); }
+#scene .find-wrap.glint .efind { outline: 1px solid var(--gold-lit); outline-offset: 1px; animation: glint 0.4s steps(2) infinite; }
+@keyframes glint { 50% { outline-color: #ce8c24; } }
+#scene .rope { position: absolute; left: 119px; width: 1px; background: #0e0a18; }
+#scene .find-tag { top: 60px; left: 120px; }
+
+/* the finds on the table, each with its white number tag */
+#scene .eslot { position: absolute; width: 12px; height: 12px; background: none; }
+#scene .eslot canvas { display: block; image-rendering: pixelated; }
+#scene .etag { position: absolute; }
+#scene .etag canvas { display: block; image-rendering: pixelated; }
+
+/* a new layer: a small flash; rare: a flash; very rare: a full white one (opacity stepped by dig-scene.js) */
+#scene .eflash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: #ffee96; }
+#scene .eflash.white { background: #faf6eb; }
+
+/* the museum (end screen): an era find drawn from the palette */
+.museum canvas.find-img { width: 48px; height: 48px; image-rendering: pixelated; }
+
+@media (prefers-reduced-motion: reduce) { #scene .find-wrap.glint .efind,  }

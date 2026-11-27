@@ -39,6 +39,10 @@ export const t = {
   reachedWorld: (era) => `You dug back to: ${era}`,
   taglineWorlds: "7 history questions. 3 seconds to read, 25 to answer. The rarer your answer, the further back in time you dig.",
   howWorlds: "Every answer digs deeper. Dig deep enough and you break through to an older world. Only 1 in 100 reaches the golden tomb: One in a Historillion.",
+  // The excavation field (2d kit v14): the trench goes down through one layer per era.
+  taglinePit: "7 history questions. 3 seconds to read, 25 to answer. The rarer your answer, the deeper you dig, into older layers.",
+  howPit: "Every answer takes the trench deeper. Only 1 in 100 reaches the golden tomb at the bottom: One in a Historillion.",
+  reachedLayer: (era) => `You dug down to: ${era}`,
   reached: (m, era) => `You reached ${m} m, ${era}`,
   // The one big word after an answer (2d kit, phone layout).
   rarityWord: { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "One in a Historillion", none: "Nothing" },

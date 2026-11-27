@@ -1,5 +1,15 @@
-// Fullscreen dig scene for Historillion (2D kit, v3): a layered dusk scene, an animated archaeologist with a living idle, a build-up for rare finds,
-// a top bar with progress squares and a sound button, floating reactions. Built with createElement (no innerHTML). Assets load relative to this file.
+// Fullscreen dig scene for Historillion (2D kit). v14: a real excavation field (field.js), seen in a steep 3/4 view: you look into a wide trench with straight walls,
+// the soil layers (one per era, young at the top, the golden tomb at the bottom) show in its back and right wall, and the archaeologist works ON its floor.
+// Every answer digs the trench deeper by its points (more points = deeper = an older layer); the floor, he and his machines go down with it. The find comes out of
+// the layer he is in, half buried, and goes onto the find table behind the trench with a white number tag.
+// v3 and later: a layered dusk scene, an animated archaeologist with a living idle, a build-up for rare finds, a top bar, floating reactions. Built with createElement
+// (no innerHTML). Assets load relative to this file.
+//
+//   v14:  const p = await scene.dig(key, points)                  // or dig(key, points, { label, benchLabel, findName }); resolves when the find is out of the ground
+//         scene.setDay([{ key, points }, ...])                    // restore a stored day: the trench at its depth, the finds on the table (no animation)
+//         scene.depth / scene.finds                               // points today / [{ key, points, depth, era, find }]
+//         ERAS, eraAt(points)                                     // the layers and their borders in points (field.js)
+//   the old call dig(key, label, benchLabel, findName) still works (it digs 0 points deeper).
 //
 //   import { mountScene, museum, DIG, REACTIONS } from "./kit-b/dig-scene.js";
 //   const scene = mountScene();                                  // once at start-up: adds #scene (artwork) and #hud (top bar) before <main id="app">
@@ -23,6 +33,8 @@
 // p.dig is its text alternative, the squares have the words in .sr, the sound button has an aria-label.
 
 import { createSound } from "./sound.js";
+import { ERAS, eraIndex, eraAt, zOf, actorOffset, actorToStage, drawSite, drawTrench, frontY, drawFront, eraTagY, eraTagX, itemCanvas, tagCanvas, SITE, VIEW, SLOT_X, SLOT_ROW, TABLE_Y, ITEM_NAMES } from "./field.js";
+export { ERAS, eraAt };
 
 export const DIG = {
   common:   { tool: "brush",   find: "shard" },
@@ -43,9 +55,7 @@ const MAN = {
 };
 const MICRO = { wipe: 1.2, notebook: 1.6, glance: 1.2, scratch: 1.2, flask: 1.6 };       // idle micro-actions and how long each plays
 const WINCH = { cycle: [0, 8], lift: [1, 6], rest: [2, 1] };                // rows of winch.png (176 x 104): the bucket cycle, the lift, the rig at rest
-const FIND_NAMES = { shard: "Painted shard", coin: "Gold coin", crown: "Jewelled crown", statue: "Marble head", rock: "Plain rock" };   // the name tag of a held-up find (opts.findNames or dig()'s 4th argument change them)
 const MACHINE = { digger_drive: [0, 4], digger_dig: [1, 8], truck_drive: [2, 4], truck_tip: [3, 8], truck_leave: [4, 4] };   // rows of machine.png (144 x 80)
-const FIND_ROW = { shard: 0, coin: 1, crown: 2, statue: 3, rock: 4 };
 const SPARKLE = new Set(["rare", "veryRare"]);
 // where he stands inside his sheet row [x from the frame's left edge, feet y]: rows drawn at another spot make him walk there. v7: every dig row is drawn at the trench lip ([76, 80]),
 // so every stroke (brush, pickaxe, spoon) lands inside the trench (stage x 90 to 150, y 22 to 80)
@@ -53,9 +63,7 @@ const PIT = [76, 80];
 const ANCHOR = { watch_digger: [32, 88], watch_truck: [32, 88], brush: PIT, pickaxe: PIT, spoon: PIT, peer: PIT, crank: PIT, brushoff: PIT, lean_crown: PIT, lift_statue: PIT, rx_none: PIT, rx_common: PIT, rx_uncommon: PIT, rx_rare: PIT, rx_veryRare: PIT };
 const FX = { puff: [0, 6], soil: [1, 6], clink: [2, 4] };            // rows of fx.png (40 x 28)
 // the word under each find on the bench: at most 6 letters a line and two lines ("\n"), so 7 places fit a 375 px phone on one straight row
-const BENCH_SHORT = { common: "Com", uncommon: "Unc", rare: "Rare", veryRare: "V.R.", none: "None" };   // only at zoom 2 (short phones): codes that fit 34 px
 export const BENCH_LABELS = { common: "Common", uncommon: "Un-\ncommon", rare: "Rare", veryRare: "Very\nrare", none: "No\nfind" };
-const FIND_KEY = { shard: "common", coin: "uncommon", crown: "rare", statue: "veryRare", rock: "none" };   // which rarity each find stands for
 
 const asset = (name) => new URL(`./scene/${name}`, import.meta.url).href;
 const sprite = (kind, name) => new URL(`./sprites/${kind}/${name}.png`, import.meta.url).href;
@@ -108,10 +116,24 @@ export function mountScene(parent = document.body, opts = {}) {
   const winch = el("div", "sprite winch");                    // the hand winch (very rare): hauls earth out of the trench, then lifts the find
   winch.hidden = true;
   const react = el("div", "react");
+  const site = el("canvas", "site");                         // v14: the excavation field (field.js), drawn once
+  drawSite(site);
+  site.style.left = `${SITE.x0}px`;
+  site.style.top = `${SITE.y0}px`;
+  const trench = el("canvas", "trench");                     // v14: the trench and its layers, redrawn as it gets deeper
+  const front = el("canvas", "front");                       // v14: the ground in front of and beside the trench, ON TOP of him (the edge hides what is below it)
+  for (const c of [trench, front]) { c.style.left = `${SITE.x0}px`; c.style.top = `${SITE.y0}px`; }
+  const actors = el("div", "actors");                        // v14: he, the machines, the find and the dust work on the trench floor: this moves them down with it
+  const eraTags = el("div", "era-tags");                     // the names of the layers dug through, on the back wall
+  const item = el("div", "efind");                           // the find of this answer (a thing from the layer he is in)
+  const rope = el("div", "rope");                            // the winch rope while it hoists the find
+  rope.hidden = true;
+  findWrap.prepend(item);
   const slots = el("div", "slots");                          // the finds bench: the day's finds stand here, in the order found
   const slotLabels = el("div", "slots");                     // the labels sit above all the finds (a find in front never hides a label)
   const fxPool = [0, 1, 2].map(() => { const n = el("div", "sprite fx"); n.hidden = true; return n; });   // dust, flying soil and sparks (3 can play at once)
-  stage.append(el("div", "flicker f1"), el("div", "flicker f2"), el("div", "tarp"), winch, machineWrap, manWrap, slots, slotLabels, ...fxPool, findWrap, react);
+  actors.append(winch, rope, machineWrap, manWrap, ...fxPool, findWrap, react);
+  stage.append(site, trench, eraTags, actors, front, slots, slotLabels);   // the table (and the finds on it) is part of the ground in front
   // ambient life: three groups of grass over the whole meadow that sway out of step, tree tops that lean (mid2 is the second frame), a tarp that flutters,
   // lanterns that flicker, two birds, drifting clouds. All of it stops under prefers-reduced-motion.
   world.append(layer("sky", "sky.png"), layer("twinkle", "twinkle.png"), el("div", "layer clouds"), layer("far", "far.png"), layer("ground", "ground.png"),
@@ -119,7 +141,8 @@ export function mountScene(parent = document.body, opts = {}) {
     el("div", "bird"), el("div", "bird b2"), stage);
   const vignette = el("div", "vignette");
   const urgentEdge = el("div", "urgent-edge");               // the red edges of the last 5 seconds (see scene.urgent)
-  root.append(world, vignette, urgentEdge);
+  const flash = el("div", "eflash");                         // v14: a new layer (a small flash), rare and very rare (a full one)
+  root.append(world, vignette, flash, urgentEdge);
   const hudEl = el("div", "", { id: "hud" });
   parent.prepend(root, hudEl);
 
@@ -198,7 +221,8 @@ export function mountScene(parent = document.body, opts = {}) {
     if (hushed) { hushed = false; sound.unhush(); }                       // the held breath is over
   };
   const hideActors = () => {
-    machine.hidden = find.hidden = sparkle.hidden = react.hidden = winch.hidden = findTag.hidden = true;
+    machine.hidden = find.hidden = sparkle.hidden = react.hidden = winch.hidden = findTag.hidden = item.hidden = rope.hidden = true;
+    findWrap.style.translate = "";
     winch.classList.remove("still", "once", "loop");
     findWrap.classList.remove("lift", "lifted", "held");
     fxPool.forEach((n) => { n.hidden = true; });
@@ -207,40 +231,82 @@ export function mountScene(parent = document.body, opts = {}) {
     findWrap.classList.remove("carry", "carried");
     react.classList.remove("float", "slam", "still");
   };
-  const phase = (on) => document.body.classList.toggle("phase-feedback", on);   // after an answer the question shrinks (CSS), the dig site stays clear
+  const phase = (on) => document.body.classList.toggle("phase-feedback", on);
+
+  // ---- v14: the depth of the day (points) and the trench drawn for it ----
+  let k = 0.5;                                                 // the actors' scale (set by fit())
+  let depth = 0;                                               // points today
+  let shown = 0;                                               // the depth drawn right now (it runs behind `depth` while he digs)
+  let target = 0;                                              // the depth the camera makes room for (the end of the beat)
+  function paintTrench(breaking = false) {
+    drawTrench(trench, shown, { breaking });
+    drawFront(front, shown);
+    const [ax, ay] = actorOffset(shown);
+    actors.style.translate = `${ax}px ${ay}px`;                 // (scaled by k about his feet, see fit())
+    const here = eraIndex(shown);
+    eraTags.replaceChildren(...ERAS.slice(0, here + 1).map((e, i) => {
+      const n = el("p", i === here ? "here" : "", { textContent: e.tag ?? e.name });
+      n.style.top = `${eraTagY(i)}px`;
+      n.style.left = `${eraTagX(i)}px`;
+      return n;
+    }));
+  }
+  // the floor goes down from `shown` to `to` between t0 and t1 seconds (in steps); a new layer gets a puff of dust, a small flash and the layer sound
+  function deepen(to, t0, t1) {
+    const from = shown, steps = Math.max(1, Math.round((t1 - t0) / 0.12));
+    for (let q = 1; q <= steps; q++) later(() => {
+      const was = eraIndex(shown);
+      shown = Math.round(from + ((to - from) * q) / steps);
+      paintTrench();
+      if (eraIndex(shown) !== was) newLayer();
+    }, t0 + ((t1 - t0) * q) / steps);
+  }
+  function newLayer() {
+    sound.play("layer");
+    fx("puff", 118, 54, 0.5);
+    flashOnce(0.45);
+    const tag = eraTags.lastElementChild;                         // the new layer's name in the wall blinks
+    if (tag) { tag.classList.remove("new"); void tag.offsetWidth; tag.classList.add("new"); }
+  }
+  function flashOnce(a, white = false) {                       // one flash: at most 3 an answer, never 3 a second
+    if (reduce.matches || opts.seek != null) return;
+    flash.classList.toggle("white", white);
+    [a, a * 0.6, a * 0.3, 0].forEach((v, q) => setTimeout(() => (flash.style.opacity = v), q * (white ? 130 : 80)));
+  }   // after an answer the question shrinks (CSS), the dig site stays clear
 
   // ---- the day's finds, kept on the bench: ONE straight row of 7 places, evenly spread, the order found from left to right, the rarity word under each ----
-  const SLOT = { x: [40, 57, 75, 92, 109, 127, 144], foot: () => 118, sprite: { shard: 0, coin: 1, crown: 2, statue: 3, rock: 4 } };
+  // ---- v14: the day's finds stand on the find table behind the trench, in the order found, each with a white tag with its number ----
   const labels = { ...BENCH_LABELS, ...(opts.benchLabels ?? {}) };
-  let finds = [];                                              // the day's finds, by sprite name
-  let pending = null;                                          // a find that is still in the pit or in his hands, waiting to go to the bench
+  let finds = [];                                              // [{ key, points, depth, era, find }]
+  let pending = null;                                          // a find that is still in the trench or in his hands, waiting to go to the table
   let pendingLabel = null;
-  function placeFind(name, animate, label, from = [118, 60]) {  // put a find on the next free place (at most 7); animate = it flies over from where it was shown (the pit, or beside him)
+  function placeFind(f, animate, label, from = [120, 50]) {      // put a find on the next free place (at most 7); animate = it flies over from where it was shown
     if (finds.length >= 7) return;
     const i = finds.length;
-    finds.push(name);
-    const foot = SLOT.foot(i);
-    const slot = el("div", "sprite slot");
-    slot.style.setProperty("--k", SLOT.sprite[name]);
-    slot.style.left = `${SLOT.x[i] - 12}px`;
-    slot.style.top = `${foot - 29}px`;
+    finds.push(f);
+    const slot = el("div", "slot eslot");
+    slot.append(itemCanvas(f.key === "none" ? "none" : f.era));
+    const foot = TABLE_Y + 7 + SLOT_ROW[i] * 13;                // two rows on the table, side by side
+    slot.style.left = `${SLOT_X[i] - 6}px`;
+    slot.style.top = `${foot - 12}px`;
     slot.dataset.n = String(i + 1);
+    slot.dataset.key = f.key;
     if (animate && !reduce.matches) {
-      slot.style.setProperty("--dx", `${from[0] - SLOT.x[i]}px`);
-      slot.style.setProperty("--dy", `${from[1] - (foot - 14)}px`);
+      slot.style.setProperty("--dx", `${from[0] - SLOT_X[i]}px`);
+      slot.style.setProperty("--dy", `${from[1] - (foot - 6)}px`);
       delay(slot);
       slot.classList.add("fly");
     }
-    const tag = el("div", "slot-label");                       // the rarity word in one or two short lines: real text (12 px on screen), on the face of the bench
-    tag.dataset.key = FIND_KEY[name];
-    tag.dataset.short = BENCH_SHORT[FIND_KEY[name]];
-    tag.style.left = `${SLOT.x[i]}px`;
-    tag.style.top = `${foot + 4}px`;
-    for (const line of String(label ?? labels[FIND_KEY[name]]).split("\n")) tag.append(el("span", "", { textContent: line }));
+    const tag = el("div", "etag");                             // the white tag on the edge of the table; the rarity word is its text alternative (scene is aria-hidden anyway)
+    tag.append(tagCanvas(i + 1, f.key === "rare" || f.key === "veryRare"));
+    tag.style.left = `${SLOT_X[i] - 4}px`;                     // the small white number tag under the find
+    tag.style.top = `${foot + 1}px`;
+    tag.dataset.key = f.key;
+    tag.title = String(label ?? labels[f.key]).replace("\n", "");
     slots.append(slot);
     slotLabels.append(tag);
   }
-  let pendingFrom = [118, 60];                                 // where the pending find is on screen (the pit, beside him, or hanging from the winch)
+  let pendingFrom = [120, 50];                                 // where the pending find is (in the trench, beside him, or hanging from the winch)
   function putPending(animate) {
     if (!pending) return;
     const name = pending;
@@ -249,10 +315,12 @@ export function mountScene(parent = document.body, opts = {}) {
     pendingLabel = null;
     find.hidden = true;
     sparkle.hidden = true;
-    findWrap.classList.remove("carry", "carried", "lift", "lifted", "held");
+    findWrap.classList.remove("carry", "carried", "lift", "lifted", "held", "glint");
+    item.hidden = true;
+    rope.hidden = true;
     findTag.hidden = true;
-    placeFind(name, animate, label, pendingFrom);
-    pendingFrom = [118, 60];
+    placeFind(name, animate, label, actorToStage(depth, k, ...pendingFrom));   // the find was shown in the trench (actor space); the table is on the surface
+    pendingFrom = [120, 50];
   }
   const flush = () => putPending(false);                       // a new beat or question starts: the find is on the bench at once
 
@@ -343,7 +411,13 @@ export function mountScene(parent = document.body, opts = {}) {
 
   // ---- after an answer ----
   // Every beat is a list of [seconds, action]; settle() runs the end state directly. Good answers get a build-up: rare about 1.9 s, very rare about 2.5 s.
-  function dig(key, label, benchLabel, findName) {
+  let resolveDig = null;
+  function dig(key, a, b, c) {
+    // v14: dig(key, points, { label, benchLabel, findName }); the old dig(key, label, benchLabel, findName) still works (0 points)
+    const pts = typeof a === "number" ? Math.max(0, a) : 0;
+    const o = typeof a === "number" ? (b ?? {}) : { label: a, benchLabel: b, findName: c };
+    const label = o.label, benchLabel = o.benchLabel;
+    if (resolveDig) { resolveDig(); resolveDig = null; }
     speed = DIG_SPEED;
     urgent(false);
     celebrate(false);
@@ -354,11 +428,18 @@ export function mountScene(parent = document.body, opts = {}) {
     phaseWas = true;
     const k = DIG[key] ? key : "none";
     const d = DIG[k];
-    pending = d.find;                                           // goes to the bench at the end of the beat
+    shown = depth;
+    const from = depth;
+    depth += pts;
+    target = depth;
+    const era = eraIndex(depth);                                 // the find comes out of the layer he ends in
+    pending = { key: k, points: pts, depth, era, find: d.find };    // goes to the table at the end of the beat
+    const findName = o.findName ?? (k === "none" ? "Plain rock" : opts.eraFindNames?.[era] ?? ITEM_NAMES[era]);
+    item.replaceChildren(itemCanvas(k === "none" ? "none" : era));
+    fit();                                                       // the camera makes room for the deeper trench first
     pendingLabel = benchLabel ?? null;
     const text = label ?? REACTIONS[k];
     const big = k === "rare" || k === "veryRare";
-    const findRow = FIND_ROW[d.find];
     const showLabel = () => {
       react.textContent = text;
       react.dataset.key = k;
@@ -368,10 +449,21 @@ export function mountScene(parent = document.body, opts = {}) {
       delay(react);
       react.classList.add(reduce.matches ? "still" : big ? "slam" : "float");
     };
-    const revealFind = (seconds) => { find.hidden = false; play(find, [findRow, 6], seconds, "once"); };
-    const carryFind = () => { pendingFrom = [98, 30]; findWrap.classList.remove("carry"); void findWrap.offsetWidth; delay(findWrap); findWrap.classList.add(reduce.matches ? "carried" : "carry"); };
-    const liftFind = () => { pendingFrom = [118, 48]; findWrap.classList.remove("lift"); void findWrap.offsetWidth; delay(findWrap); findWrap.classList.add(reduce.matches ? "lifted" : "lift"); };   // the winch hoists it 12 px
-    const showTag = () => { findTag.textContent = findName ?? opts.findNames?.[d.find] ?? FIND_NAMES[d.find]; findTag.hidden = false; };   // the museum tag next to the find while it is held up
+    // v14: the find lies half buried in the floor of the trench; he lifts it out (to beside him) or the winch hoists it up on its rope
+    const at = (x, y) => { findWrap.style.translate = `${Math.round(x - 120)}px ${Math.round(y - 50)}px`; pendingFrom = [x, y]; };
+    const revealFind = () => { item.hidden = false; item.classList.add("buried"); at(118, 52); };   // half out of the foot of the back wall, in the layer he is digging
+    const moveFind = (to, seconds, t0 = 0, withRope = false) => {   // in steps, on the beat's clock
+      const n = 6;
+      later(() => { item.classList.remove("buried"); rope.hidden = !withRope; }, t0);
+      for (let q = 1; q <= n; q++) later(() => {
+        const x = 118 + (to[0] - 118) * (q / n), y = 52 + (to[1] - 52) * (q / n);
+        at(x, y);
+        if (withRope) { rope.style.top = "36px"; rope.style.height = `${Math.max(0, y - 6 - 36)}px`; }
+      }, t0 + (seconds * q) / n);
+    };
+    const carryFind = (t0 = 0) => moveFind([96, 26], 0.3, t0);                   // he lifts it out and holds it up beside him
+    const liftFind = (t0 = 0) => moveFind([120, 44], 0.6, t0, true);             // the winch hoists it out of the trench, on its rope
+    const showTag = () => { findTag.textContent = findName; findTag.hidden = false; };   // the name tag next to the find while it is held up
     const sparkles = () => { sparkle.hidden = false; play(sparkle, [0, 6], 0.5, "once"); };
     const vignetteOn = (strong) => root.classList.add("dim", ...(strong ? ["dim-strong"] : []));
     const vignetteOff = () => root.classList.remove("dim", "dim-strong");
@@ -380,6 +472,9 @@ export function mountScene(parent = document.body, opts = {}) {
     // the end state of every beat (also what reduced motion shows, and what a key press or tap jumps to)
     const finalState = () => {
       cancel();
+      shown = depth;
+      paintTrench();
+      flash.style.opacity = 0;
       vignetteOff();
       rumble(false);
       fxPool.forEach((n) => { n.hidden = true; });
@@ -394,9 +489,12 @@ export function mountScene(parent = document.body, opts = {}) {
       showLabel();
       react.classList.remove("float", "slam");
       react.classList.add("still");
+      done();
     };
+    const done = () => { if (resolveDig) { const r = resolveDig; resolveDig = null; r({ depth, era: ERAS[era].name, find: findName }); } };
 
-    if (reduce.matches) return finalState();
+    const promise = new Promise((r) => { resolveDig = r; });
+    if (reduce.matches) { finalState(); return promise; }
     if (opts.seek != null) { root.classList.add("seek-freeze"); clock = opts.seek; }   // seek mode: freeze the scene at that moment of the beat
     else {
       settleFn = () => finalState();                            // a key press, Enter or a tap: end state at once
@@ -429,6 +527,7 @@ export function mountScene(parent = document.body, opts = {}) {
       vignetteOn(false);
       sound.play("swell-rare");
       strokes("pickaxe", 0.2, 1);                               // one strike: it rings on something hard
+      deepen(depth, 0.5, 3.2);                                  // the floor goes down while the buckets come up
       push(1, 1.1, 48, 148);                                    // one zoom step closer (and the vignette closes with it)
       later(() => { winch.hidden = false; play(winch, WINCH.rest, 1, "once"); hold(winch); fx("puff", 90, 80, 0.5); fx("puff", 152, 78, 0.5); sound.play("thud"); }, 1.0);   // the rig stands up beside the trench
       later(() => { play(man, MAN.crank, 0.8, "loop"); rumble(true); }, 1.1);
@@ -445,10 +544,13 @@ export function mountScene(parent = document.body, opts = {}) {
       later(() => { rumble(false); play(winch, WINCH.rest, 1, "once"); hold(winch); }, 3.3);
       breath(3.35, 1.1);                                        // everything goes quiet, the vignette closes round the pit
       later(() => play(man, MAN.peer, 0.9, "once"), 3.4);       // he steps up to the trench and looks in
-      later(() => { revealFind(0.4); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 4.3);
-      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); sound.play("lift", RANK.rare); }, 4.7);   // the hook takes the crown and hoists it out
+      later(() => { revealFind(); sound.play("reveal-rare"); root.classList.remove("dim-tight"); fx("puff", 118, 54, 0.5); }, 4.3);
+      later(() => { play(winch, WINCH.lift, 0.6, "once"); play(man, MAN.crank, 0.6, "once"); sound.play("lift", RANK.rare); }, 4.7);   // the hook takes the find and hoists it out
+      liftFind(4.7);
+      later(() => flashOnce(0.6), 5.4);                         // a flash as it comes up
       push(0, 5.0);                                             // the camera pulls back as it rises
       later(() => { play(man, MAN.rx_rare, 0.5, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 5.4);
+      later(done, 5.4);
       later(() => putPending(true), 5.4 + SHOW);
     } else if (k === "veryRare") {                              // about 8.3 s (6.6 s at DIG_SPEED): he strikes something hard, the DIGGER rolls in and scoops, then the winch hoists the statue out
       vignetteOn(true);
@@ -457,6 +559,7 @@ export function mountScene(parent = document.body, opts = {}) {
       later(() => { machine.hidden = false; slide(-90, 0.35); play(machine, MACHINE.digger_drive, 0.4, "loop"); play(man, MAN.watch_digger, 0.8, "loop"); sound.play("rumble"); }, 1.6);   // the digger rolls in, he waves it on
       const CYC = 0.7;
       later(() => { play(machine, MACHINE.digger_dig, CYC, "loop"); rumble(true); }, 2.0);
+      deepen(depth, 2.0, 4.1);                                  // the digger takes the trench down
       for (let i = 0; i < 3; i++) {
         const t = 2.0 + i * CYC;
         later(() => sound.play("dig-digger"), t);
@@ -471,24 +574,31 @@ export function mountScene(parent = document.body, opts = {}) {
       breath(4.6, 1.4);
       later(() => play(man, MAN.peer, 0.9, "once"), 4.65);      // he steps up to the trench and looks in
       later(() => vignetteOn(true), 5.5);
-      later(() => { revealFind(0.45); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 119, 62, 0.5); }, 5.8);
-      later(() => { play(winch, WINCH.lift, 0.6, "once"); liftFind(); play(man, MAN.crank, 0.6, "once"); sound.play("lift", RANK.veryRare); }, 6.3);   // the hook takes the statue and hoists it out
-      push(0, 6.6);                                             // the camera pulls back as it rises
-      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); }, 7.0);
-      later(() => putPending(true), 7.0 + SHOW + 0.2);
+      later(() => { revealFind(); findWrap.classList.add("glint"); sound.play("reveal-veryRare"); root.classList.remove("dim-tight"); fx("puff", 118, 54, 0.5); }, 5.8);
+      later(() => { play(winch, WINCH.lift, 1.5, "once"); play(man, MAN.crank, 1.5, "once"); sound.play("lift", RANK.veryRare); }, 6.3);   // the hook takes it and hoists it out ...
+      liftFind(6.3);
+      later(() => { speed = DIG_SPEED * 0.4; }, 6.31);          // ... in slow motion (the times after this run 2.5 x slower)
+      later(() => { speed = DIG_SPEED; flashOnce(0.95, true); sound.play("finish"); }, 6.9);   // a white flash and the fanfare as it comes out, gold
+      push(0, 7.0);                                             // the camera pulls back
+      later(() => { play(man, MAN.rx_veryRare, 0.6, "once"); sparkles(); showLabel(); showTag(); vignetteOff(); done(); }, 7.1);
+      later(() => putPending(true), 7.1 + SHOW + 0.6);
     } else {                                                    // common 4.5 s, uncommon 5.5 s, none 4 s: the tool works several times, he leans in and looks, brushes the find clean and holds it up
       const t = strokes(d.tool);
+      deepen(depth, 0.2, t);                                    // the floor goes down with his strokes
+      if (k === "uncommon") later(() => { rumble(true); later(() => rumble(false), 0.3); }, t - 0.4);   // a small shock on the last stroke
       const P = k === "none" ? 0.5 : 0.6;                       // the pause where he looks
       later(() => play(man, MAN.peer, P, "once"), t);
       const B = t + P;
       later(() => { play(man, MAN.brushoff, 0.7, "once"); fx("puff", 118, 70, 0.5); sound.play("brushoff"); }, B);
-      later(() => { revealFind(0.5); sound.play(`reveal-${k}`); }, B + 0.1);
-      later(() => fx("puff", 112, 66, 0.5), B + 0.4);
-      later(() => { carryFind(); sound.play("lift", RANK[k]); }, B + 0.75);   // he lifts it out and holds it up beside him
-      later(() => { play(man, MAN[`rx_${k}`], 0.5, "once"); showLabel(); showTag(); }, B + 0.95);
+      later(() => { revealFind(); sound.play(`reveal-${k}`); }, B + 0.1);
+      later(() => fx("puff", 118, 54, 0.5), B + 0.4);
+      later(() => sound.play("lift", RANK[k]), B + 0.75);
+      carryFind(B + 0.75);                                      // he lifts it out and holds it up beside him
+      later(() => { play(man, MAN[`rx_${k}`], 0.5, "once"); showLabel(); showTag(); done(); }, B + 1.1);
       later(() => putPending(true), B + 0.95 + SHOW);
     }
     clock = 0;
+    return promise;
   }
 
   // ---- the top bar: sound button, progress squares, score chip (and an optional chip), the timer ----
@@ -548,13 +658,17 @@ export function mountScene(parent = document.body, opts = {}) {
   let base = { s: 3, sy: 40, ox: 0 };
   let area = { top: 0, bottom: 600, vw: 375 };
   function camPlace({ step, left, right }) {
+    // v14: he and the find (actor rows 20 to 100, moved down with the trench floor) and the window left..right (actor x)
+    const [l0, t0] = actorToStage(target, k, left, 20), [r0, b0] = actorToStage(target, k, right, 100);
+    left = l0; right = r0;
+    const topRow = Math.round(t0) - 6, rows = Math.round(b0 - t0) + 12;
     for (let st = step; st > 0; st--) {
       const s = base.s + st;
-      if ((right - left) * s > area.vw - 16 || 82 * s > area.bottom - area.top) continue;            // this step would not fit: try a smaller one
+      if ((right - left) * s > area.vw - 16 || rows * s > area.bottom - area.top) continue;          // this step would not fit: try a smaller one
       let ox = area.vw / 2 - ((left + right) / 2 - 92) * s;                                           // the window left..right in the middle of the screen ...
       ox = Math.min(Math.max(ox, 8 - (left - 92) * s), area.vw - 8 - (right - 92) * s);               // ... but never past either edge
-      const row20 = Math.min(Math.max((area.top + area.bottom) / 2 - 61 * s, area.top), area.bottom - 82 * s);   // screen y of stage row 20 (the rows 20 to 102 centred in the free area)
-      return { s, ox: Math.round(ox), sy: Math.round(row20 / s - 20) };
+      const y = Math.min(Math.max((area.top + area.bottom) / 2 - (rows / 2) * s, area.top), area.bottom - rows * s);   // the rows centred in the free area
+      return { s, ox: Math.round(ox), sy: Math.round(y / s - topRow) };
     }
     return null;
   }
@@ -564,8 +678,9 @@ export function mountScene(parent = document.body, opts = {}) {
     root.style.setProperty("--s", s);
     root.style.setProperty("--sy", sy);
     root.style.setProperty("--ox", `${ox}px`);
-    root.style.setProperty("--pitx", `${ox + 14 * s}px`);                // the tight vignette is centred between him and the pit (stage 106, 54)
-    root.style.setProperty("--pity", `${(sy + 54) * s}px`);
+    const [vx, vy] = actorToStage(shown, k, 106, 64);                    // the tight vignette is centred between him and the find
+    root.style.setProperty("--pitx", `${ox + (vx - 92) * s}px`);
+    root.style.setProperty("--pity", `${(sy + vy) * s}px`);
     root.style.setProperty("--vigr", `${28 * s}px`);
   }
 
@@ -583,9 +698,9 @@ export function mountScene(parent = document.body, opts = {}) {
     root_.classList.remove("side");
     const hudBottom = () => (hudEl.hidden ? 12 : Math.ceil(hudEl.getBoundingClientRect().bottom));
     let ptop = hudBottom() + 10;
-    const need = 117;                                                   // native rows the stage needs: from the floating label (stage row 18) to the bottom of the bench (134)
+    const need = frontY(target) + 14 - VIEW.top;                        // v14: the camp, the whole back wall (taller as he digs) and the front edge
     const sMin = Math.ceil(Math.max(vw / 640, vh / 460, 2));            // the picture must cover the screen
-    const sWide = Math.max(Math.floor(vw / 125), 2);                    // the stage is about 125 art pixels wide
+    const sWide = Math.max(Math.floor(vw / 170), 2);                    // v14: the field is about 170 art pixels wide (the man, the trench, the find table)
     const mainEl = document.querySelector("main");
     const phone = mainEl && !hudEl.hidden && !document.body.classList.contains("no-hud") && !document.body.classList.contains("phase-end");     // the question layout (not the intro, not the end screen)
     let top, bottom, s;
@@ -605,10 +720,11 @@ export function mountScene(parent = document.body, opts = {}) {
     }
     const space = bottom - top;
     const topUsed = Math.min(Math.max(top + (space - need * s) / 2, top - 8 * s), bottom - need * s);   // centred in the free area; when it does not fit it rises under the question, never past the bar
-    const sy = Math.round(topUsed / s - 18);                            // the first row we need is stage row 18
-    root.classList.toggle("z2", s < 3);                                 // at zoom 2 the bench labels use short codes (see BENCH_SHORT): 7 words do not fit 7 places 34 px apart
-    base = { s, sy, ox: Math.round(vw / 2) };
+    const sy = Math.round(topUsed / s - VIEW.top);                      // the first row we need
+    base = { s, sy, ox: Math.round(vw / 2 - 20 * s) };                 // v14: stage x 112 in the middle: the trench (x 34 to 128) and the find table (to x 200)
     area = { top, bottom, vw };
+    k = (s - 1) / s;                                                     // the actors at one screen px less per art px than the field (as in v12): he is about one layer high
+    actors.style.scale = k;
     paint();
     const rs = root_.style;
     rs.setProperty("--cx", `${Math.round(vw / 2)}px`);
@@ -633,16 +749,31 @@ export function mountScene(parent = document.body, opts = {}) {
   idle();
   fit();
   // the day's finds: dig() adds one, newDay() clears them (call it when a new game starts), setFinds() restores a list (["shard", "coin", ...]), hud(null) leaves them
-  const newDay = () => { finds = []; pending = null; slots.replaceChildren(); slotLabels.replaceChildren(); };
-  const setFinds = (list) => { newDay(); list.forEach((n) => placeFind(n, false)); };
-  return { hud, idle, ready, dig, reset: idle, fit, sound, newDay, setFinds, urgent, celebrate, get finds() { return [...finds]; } };
+  const newDay = () => { finds = []; pending = null; slots.replaceChildren(); slotLabels.replaceChildren(); depth = shown = target = 0; paintTrench(); fit(); };
+  // v14: setDay([{ key, points }]) restores a day: the trench at its depth, each find from the layer it was dug in. setFinds([...find names]) still works (depth 0).
+  const setDay = (list = []) => {
+    newDay();
+    for (const { key, points } of list) {
+      const k = DIG[key] ? key : "none";
+      depth += Math.max(0, points || 0);
+      placeFind({ key: k, points, depth, era: eraIndex(depth), find: DIG[k].find }, false);
+    }
+    shown = target = depth;
+    paintTrench();
+    fit();
+  };
+  const KEY_OF = Object.fromEntries(Object.entries(DIG).map(([k, v]) => [v.find, k]));
+  const setFinds = (list) => { newDay(); list.forEach((n) => placeFind({ key: KEY_OF[n] ?? "none", points: 0, depth: 0, era: 0, find: n }, false)); };
+  paintTrench();
+  return { hud, idle, ready, dig, reset: idle, fit, sound, newDay, setDay, setFinds, urgent, celebrate, get depth() { return depth; }, get finds() { return finds.map((f) => ({ ...f })); } };
 }
 
 // items: [{ find: "coin", label: "Gold coin" }, ...]  -> <ul class="museum">, one case per find (end screen, also the share image)
 export function museum(items) {
   const list = el("ul", "museum");
-  for (const { find, label } of items) {
+  for (const { find, label, era, key } of items) {
     const li = el("li");
+    if (era != null) { const c = itemCanvas(key === "none" ? "none" : era); c.className = "find-img"; li.append(c, document.createTextNode(label)); list.append(li); continue; }   // v14: the thing from its layer
     li.append(el("img", "find-img", { src: sprite("finds", find), alt: "", decoding: "async" }), document.createTextNode(label));
     list.append(li);
   }

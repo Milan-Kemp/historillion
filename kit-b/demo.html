@@ -6,12 +6,15 @@
   <title>Historillion, 2D kit: fullscreen demo v3</title>
   <link rel="icon" href="brand/favicon.png">
   <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="layout-phone.css">
+  <link rel="stylesheet" href="field.css">
 </head>
 <body>
   <main id="app"></main>
   <script type="module">
     // A tiny fake game that uses the kit exactly the way main.js should (strings here stand in for js/strings/en.js).
     // ?screen=intro|ask|common|uncommon|rare|veryRare|none|end jumps to a state; &still=1 shows final frames at once; &hint=1 shows the "did you mean" line;
+    // &nofocus=1 does not focus the input. v14: &day=4 starts with the first 4 answers of DAY dug (the trench at their depth, their finds on the table); &score=430 for the end screen.
     // &nofocus=1 does not focus the input. Click the buttons to play through it with sound (the first tap unlocks audio).
     import { mountScene, museum, DIG, REACTIONS } from "./dig-scene.js";
     import { endCurve, rankList, findsList, nextDig, RANKS } from "./end-screen.js";
@@ -29,13 +32,16 @@
     const sentences = { common: "You dug up a pottery shard with a brush.", uncommon: "You dug up a coin with a pickaxe.", rare: "You dug up a crown with a small excavator.", veryRare: "You dug up a statue with a dump truck.", none: "You dug up just a rock with a spoon." };
     const rarity = { common: "Common answer. 41% of players gave it.", uncommon: "Uncommon answer. 17% of players gave it.", rare: "Rare answer. 6% of players gave it.", veryRare: "Very rare answer. Under 1% of players gave it.", none: "No valid answer." };
     const rarityShort = { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "No answer" };
-    const points = { common: 8, uncommon: 24, rare: 62, veryRare: 94, none: 0 };
+    const points = { common: 30, uncommon: 55, rare: 75, veryRare: 96, none: 0 };
+    const DAY = [{ key: "common", points: 22 }, { key: "uncommon", points: 51 }, { key: "rare", points: 78 }, { key: "common", points: 30 }, { key: "veryRare", points: 97 }, { key: "none", points: 0 }, { key: "uncommon", points: 48 }];
     const LONG = q.has("long");                              // &long=1: the longest question and a long explanation, with accents and apostrophes
     const QUESTION = LONG ? "Name an explorer from the Age of Discovery (c. 1400 to 1600). Álvares Cabral and Ch’in-era admirals count too." : "Which Roman emperor is said to have played music while Rome burned?";
     const EXPLAIN = LONG ? "Vasco da Gama reached India by sea in 1498, Pedro Álvares Cabral landed in Brazil in 1500, and Ferdinand Magellan’s expedition completed the first circumnavigation (1519 to 1522), although Magellan himself died in the Philippines. Zheng He’s treasure fleets of the early 1400s were larger than any European fleet of the time." : "Nero was said to have played the lyre, but the fiddle did not exist yet.";
     const FIND_LIST = ["shard", "coin", "crown", "shard", "statue", "rock", "coin"];
     if (q.has("finds") && q.get("screen") !== "end") scene.setFinds(FIND_LIST.slice(0, Number(q.get("finds"))));
-    let total = 0;
+    if (q.has("day")) scene.setDay(DAY.slice(0, Number(q.get("day"))));
+    if (q.has("pts")) scene.setDay([{ key: "rare", points: Number(q.get("pts")) }]);   // &pts=330: the trench dug that deep (one find)
+    let total = scene.depth;
     const hud = (extra = {}) => scene.hud({ progress: { current: 3, total: 7 }, counter: "Question 3 of 7", score: `Score ${total}`, soundLabel: "Sound", ...extra });
 
     function intro() {
@@ -43,8 +49,8 @@
       show(el("h1", { textContent: "Historillion" }), el("p", { textContent: "A daily history game. Seven questions, twenty seconds each." }), el("p", { textContent: "The rarer your answer, the more you dig up." }), el("button", { textContent: "Start", onclick: () => { total = 0; ask(true); } }));
     }
     function ask(first = false) {
-      if (first) scene.newDay();                             // a new game: the bench is emptied
-      const timer = el("p", { className: "timer", role: "timer", textContent: "20 s" });
+      if (first && !q.has("day") && !q.has("pts")) scene.newDay();            // a new game: the table is cleared, the trench filled in
+      const timer = el("p", { className: q.has("reading") ? "timer reading" : "timer", role: "timer", textContent: q.has("reading") ? "Read 3" : "20" });
       const input = el("input", { type: "text", placeholder: "Type your answer", "aria-label": QUESTION });
       const msg = el("p", { className: "msg", role: "status" });
       const form = el("form", {}, input, el("button", { type: "submit", textContent: "Submit" }));
@@ -60,10 +66,16 @@
     function feedback(key) {
       total += points[key];
       hud();
-      scene.dig(key, REACTIONS[key]);
-      show(el("h2", { textContent: QUESTION }), el("p", { textContent: "Your answer: nero" }), el("p", { className: "dig", textContent: sentences[key] }),
-        el("p", { className: "points", textContent: key === "none" ? "0 points" : `+${points[key]} points` }), el("p", { textContent: rarity[key] }),
-        el("p", { textContent: EXPLAIN }), el("button", { textContent: "Next", onclick: () => (q.get("loop") ? ask() : end()) }));
+      const dug = scene.dig(key, points[key], { label: REACTIONS[key] });   // v14: the points take the trench deeper; the Promise resolves when the find is up
+      // v10: one big word; .wait hides the result until the find is out of the ground (main.js removes it at that moment; here a timer does)
+      const WORD = { common: "Common", uncommon: "Uncommon", rare: "Rare", veryRare: "Very rare", none: "Nothing" };
+      const REVEAL = { common: 2.65, uncommon: 3.7, none: 2.25, rare: 5.65, veryRare: 7.5 };
+      const waiting = [el("p", { className: "rarity-word wait", textContent: WORD[key] }), el("p", { className: "points wait", textContent: key === "none" ? "+0" : `+${points[key]}` }),
+        el("p", { className: "rarity-line wait", textContent: rarity[key] }), el("p", { className: "dig wait", textContent: sentences[key] }), el("p", { className: "explain wait", textContent: EXPLAIN })];
+      waiting[0].dataset.key = key;
+      show(el("h2", { textContent: QUESTION }), el("p", { className: "your-answer", textContent: "Your answer: nero" }), ...waiting, el("button", { textContent: "Next", onclick: () => (q.get("loop") ? ask() : end()) }));
+      const reveal = () => waiting.forEach((n) => n.classList.remove("wait"));
+      if (q.has("still") || (q.has("at") && Number(q.get("at")) >= REVEAL[key])) reveal(); else if (!q.has("at")) dug.then(reveal);
     }
     // a fake score distribution: a bell over 0..700 in bins of 25 (in the game these come from js/distribution.js: scoreDistribution, bins, percentile)
     function fakeBins() {
@@ -91,19 +103,21 @@
       if (q.has("finds")) scene.setFinds(FIND_LIST.slice(0, Number(q.get("finds"))));
       const keys = ["common", "uncommon", "rare", "veryRare", "none", "rare", "common"];
       const bins = fakeBins();
-      const score = q.get("score") ? Number(q.get("score")) : (total || 318);
+      if (q.get("score")) scene.setDay([{ key: "veryRare", points: Number(q.get("score")) }]);
+      else if (!scene.depth) scene.setDay(DAY);
+      const score = scene.depth;
       const pctl = bins.filter((b) => b.to <= score).reduce((s, b) => s + b.p, 0);
       const prompts = ["Name a sport where you're allowed to kick the ball", "Name a country that has an A as its second letter", "Name a city on an island (towns count too)", "Name an album by an artist with more than 1 million monthly listeners", "Name an animal with webbed feet", "Name a video game company", "Name a form medicine comes in (like a pill)"];
       const answers = ["Gaelic football", "Palau", "Reykjavik", "Late Registration", "ge", "Psyonix", "Powder"];
       if (q.get("only") === "answers") return show(answersMock());
       show(el("h1", { className: "total" }, el("span", { className: "sr", textContent: "Total: " }), String(score)), el("p", { className: "sub", textContent: "points" }),
-        endCurve({ bins, total: score, percentile: pctl }),
-        rankList({ total: score, ranks: RANKS, title: "Your rank" }),
+        endCurve({ bins, total: score, percentile: pctl, unit: "" }),
+        rankList({ total: score, ranks: RANKS, title: "Your rank", unit: "" }),
         findsList({ results: keys.map((k, i) => ({ prompt: prompts[i], typed: answers[i], rarity: rarityShort[k], find: DIG[k].find, findLabel: names[DIG[k].find], pts: points[k] })), title: "Your finds", pointsLabel: "pts" }),
         nextDig({ label: "Next dig in" }),
         ...(q.has("answers") ? [answersMock()] : []),
         el("button", { textContent: "Play again", onclick: intro }));
-      if (score >= 640) scene.celebrate();                      // the top rank: a moment of its own (after scene.reset())
+      if (score >= 420) scene.celebrate();                      // v14: the golden tomb, one in 100 (after scene.reset())
     }
     // for tests and screenshots: the zoom, the stage position and the boxes of the panels, written into body[data-fit] after layout
     const report = () => { const sc = document.getElementById("scene"); const r = (e) => { const b = e?.getBoundingClientRect(); return b ? [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)] : null; };

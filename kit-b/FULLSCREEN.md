@@ -1,10 +1,145 @@
-# 2D kit, v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
+# 2D kit, v14: the pit as a real excavation field (layers = eras); v13: digging = travelling back in time (a pixel world per era); v12: the cross-section, clear and calm; v11: the cross-section dig (deeper = rarer); v10: phone layout
 
 The scene is the page: a layered dusk scene, a thin top bar (sound button, 7 progress squares, score, timer), the question in a panel, and an archaeologist at a detailed dig site. v4 adds **kept finds** (the day's finds stay on a bench at the dig site) and a **new typography system**. Everything from v3 (living idle, build-up for rare and very rare finds, sound, end screen with score curve) is still here; its notes are further down.
 
 Play it: `python -m http.server 8000` in the folder above the kit, open `demo.html` (click through it; the first tap unlocks audio). Useful switches: `?screen=intro|ask|common|uncommon|rare|veryRare|none|end`, `&still=1` (final frames), `&finds=3` (start with the first 3 finds on the bench, up to 7), `&long=1` (the longest question and a long explanation, with accents and apostrophes), `&at=1.15` (freeze a dig beat at 1.15 s), `&loop=1` (keep playing questions), `&score=640`.
 
-## v13 (this version): digging = travelling back in time
+## v14 (this version): the pit becomes a real excavation field
+
+v14 goes back to the pit (`dig-scene.js`, demo `demo.html`). It is built on **your** `kit-b/dig-scene.js`, so it keeps:
+- `DIG_SPEED` 1.25;
+- rare = the winch;
+- very rare = the digger, then the winch;
+- the `lift` and `start` sounds;
+- `RANK`;
+- the vignette that starts with the zoom.
+
+`sound.js` is now your version (it has `start` and `lift`). The worlds (v13) and the cross-section (v12) stay in the kit as `world-*` and `shaft-*`.
+
+New files:
+- `field.js`: all the art of the field, drawn in code from the palette.
+- `field.css`: load it after `layout-phone.css`.
+
+Previews, made with `_build/shots14.py`:
+- `2d/previews/v14-375-sheet.png`, `v14-462-sheet.png` and `v14-1440-sheet.png`: intro, question, after common, after very rare, end screen, and end screen at the tomb.
+- `v14-375-worlds.png`: the trench dug into each of the seven layers.
+
+Demo switches:
+- `&day=4` starts with the first 4 answers of a day dug.
+- `&pts=330` shows the trench dug that deep.
+- `&score=470` shows the end screen at that score.
+- `&at=4.4` freezes a beat at that time.
+
+Built after the four photos: a 3/4 view into the trench, him working on its floor, and bare sandy ground around it.
+
+1. **The field (round 3):**
+   - **A hole in the field, one view:** the trench is a dark opening in the sandy ground. There is no frame and no wooden box. Its far edge throws a shadow onto the top of the back wall. Below that, the back wall runs down, and the side walls lean in and are darker, as when you look down into a hole at an angle. The near edge is a crumbled earth lip that hides what lies under it; the floor in front of the wall is plain earth.
+   - **The archaeologist is about one layer high:** he, the winch, the digger and the find are drawn at one screen px less per art px than the field (as in v12: 1 at 2x, 2 at 3x, 3 at 4x). They stand at the dig spot and go down with the floor.
+   - **The layers:** each layer has its own earth colour, with bigger pieces you can recognise on a phone:
+
+     | Layer | Colour | Pieces |
+     |---|---|---|
+     | Modern | dark brown | a brick, a glass bottle |
+     | Early modern | red-brown | a clay pipe |
+     | Medieval | grey | curved roof tiles |
+     | Roman | ochre | mosaic tiles, an amphora shard with its handle |
+     | Bronze/Iron | sand yellow | bronze, green with age |
+     | Stone Age | dark grey | flint, a bone |
+     | the tomb | gold | gold |
+
+     A new layer appears at the bottom of the wall. Its name stands small by the band and blinks once. The layer he is digging now has a gold name with a gold edge.
+   - **Old finds:** a pot in a band, and a skull and a bone on the floor, each with a small white tag.
+   - **Wood and string:** one loose plank over the far edge, a ladder down, two props against the wall, and one thin string on pegs along the top edge only.
+   - **Around the trench:**
+     - calm sand with a few grains;
+     - low, uneven heaps of dug earth (not domes), a spade and a wheelbarrow;
+     - grass and trees round the edges;
+     - the green tent with the find table beside it, a sieve and buckets;
+     - behind on the left, T-shaped standing stones and a dry-stone wall.
+   - **The find table:** the finds stand side by side, 4 at the back and 3 in front. Under each find is a small white tag (5 x 7) with its number; the find is bigger than the tag. A rare find's tag has a gold corner.
+   - **No era chip:** the chip at the question is gone; the wall says it.
+2. **The layers are the eras.** Their borders are a parameter, `ERAS[].from` in `field.js` (in points):
+   - Modern 0
+   - Early modern 80
+   - Medieval 160
+   - Roman 230
+   - Bronze/Iron 300
+   - Stone 360
+   - the golden tomb, "One in a Historillion", from 420
+
+   Each point is 0.3 art px of back wall: the six eras are 126 px of wall, and the tomb band is another 60 points deep.
+
+   When he reaches the tomb, a golden sarcophagus with a mask comes out of the foot of the wall.
+
+   The names stand small by their band (real text, 11 px on screen, on a dark tag); the layer you are in is gold. A chip at the top left of the free area shows the layer's name and years, with seven pips. It is hidden after an answer, when the result takes that room.
+3. **An answer:**
+   - The floor goes down during the beat by the answer's points, in steps, with his strokes (or with the winch buckets, or the digger).
+   - Each new layer on the way: a puff of dust at the floor, a small yellow flash, the `layer` sound, and the chip blinks.
+   - The find comes out of the layer he ends in. It is one object per era:
+     - pocket watch
+     - brass compass
+     - knight's sword
+     - Roman coin
+     - bronze axe
+     - flint hand axe
+     - golden mask
+     - a plain rock for "none"
+   - The find sits half out of the foot of the back wall, in the band he is digging. He lifts it out (common, uncommon, none), or the winch hoists it up on a rope (rare, very rare). It shows with its name tag for a moment, then flies to the next place on the find table.
+   - It goes to the find table beside the tent (not in a row on the edge). Every find there gets a white tag with its number, 1 to 7; rare finds have a gold edge on the tag.
+4. **Effects per rarity** (your beats, plus):
+   - common: no effect.
+   - uncommon: a small shake on the last stroke.
+   - rare: the zoom and vignette, the winch hoists the find, and a flash as it comes up.
+   - veryRare:
+     - the digger;
+     - the lift in slow motion (2.5 times slower);
+     - a full white flash and the fanfare (`finish`);
+     - the find glints gold (a blinking gold frame) and sparkles.
+   - At most 3 flashes per answer.
+   - **The camera:** the push-in follows him down: it frames him and the find on the floor, wherever the floor is. The whole trench always fits above the answer bar.
+   - **Scale:** on a 375 px phone the field shows at 2 screen px per art px; on a big screen 3 or 4, and less as the wall grows, so the whole wall always fits above the answer bar.
+5. **The Promise:**
+   - `await scene.dig(key, points, { label, benchLabel, findName })` resolves when the find is out of the ground and its name shows. It gives `{ depth, era, find }`.
+   - Any key or tap jumps to the end state and resolves it.
+   - The old `dig(key, label, benchLabel, findName)` still works, but digs 0 points deeper.
+6. **End screen:**
+   - The panel stops where the field begins, and the camera zooms out so the whole wall, with every layer reached that day, and the finds on the table are in view under the panel.
+   - From 420 points, the tomb is in view and `celebrate()` adds confetti.
+   - `museum([{ find, label, era, key }])` draws the era object when `era` is given; without `era` it uses the old images.
+
+### The exact edits in `js/main.js` (v14)
+- **Stylesheet:** in `index.html`, add `<link rel="stylesheet" href="kit-b/field.css">` after `layout-phone.css`. It needs `kit-b/field.js` next to `dig-scene.js`.
+- **Default scene:** make the pit the default again, and keep `?scene=world` and `?scene=shaft` if you like. Import it with `import { mountScene, museum, DIG, ERAS, eraAt } from "../kit-b/dig-scene.js";`.
+- **The dig** (line 213): `dug = scene.dig(r.key, r.pts, { label: t.reaction[r.key], benchLabel: t.benchLabel[r.key] });` Remove `.wait` after `await dug`, as with the shaft.
+- **A stored day:** `scene.setDay(results.map((r) => ({ key: r.key, points: r.pts })))`, instead of `setFinds`.
+- **The end screen museum:** `museum(results.map((r, i) => ({ find: DIG[r.key].find, label: r.dig.find, era: scene.finds[i]?.era, key: r.key })))`.
+- **Score:** the score is in points again. `hud({ score })` can show it, and `endCurve` / `rankList` take `unit: ""`.
+- **Ranks and celebrate:** set the RANKS and the curve's `topFrom` to the new spread. `celebrate()` fits from 420, the tomb. Today it fires at `t.ranks.at(-1).from`, so make the last rank start at 420.
+- **Unchanged:**
+  - `newDay()`, `ready()`, `idle()`, `hud()` and `sound`;
+  - the reading time and the once-a-day logbook;
+  - `?glass=`;
+  - your `start` and `lift` sounds.
+
+### `js/strings/en.js` (v14)
+- Intro text, for example: "The rarer your answer, the deeper you dig, into older layers."
+- Optional: `eraFinds: ["Pocket watch", "Brass compass", "Knight's sword", "Roman helmet", "Bronze axe", "Flint hand axe", "Golden mask"]`. Pass it to `mountScene(document.body, { eraFindNames: t.eraFinds })` for the name tag of a held-up find.
+- The layer names and years live in `ERAS` (`field.js`).
+
+### Not checked in v14
+- Real phones and Safari.
+- 375 x 470 with the keyboard open.
+- The beats were checked frozen with `&at=` and in headless Chrome, not watched live. The sound was not listened to.
+- **Desktop:** at 1440 wide the whole picture shows: the sandy site is a patch in the meadow, with the old meadow props (sign, path, rocks) around it.
+- **Trench shape:** the strip of floor stays the same size, so the trench gets longer front to back as it gets deeper. On screen this reads as a back wall that grows; it is not a real fixed-size trench.
+- **The find table on a phone:** at 2 screen px per art px a find is 24 px and its tag 10 x 14 px. That is readable, but small.
+- **Scale of the actors:** he, the winch and the digger are drawn at a smaller pixel size than the field, the same trade as in v12.
+- **Sprite positions:** the winch and the digger are the old sprites, moved down with the floor. They stand on the floor of a 94 px wide trench; parts of them can go behind the side edges.
+- **Text contrast:** the layer tags are cream or gold on a dark tag at 0.86. This was computed, not measured.
+- **The table:** it holds 7 finds. More answers in a day would not get a place.
+- **`ground.png`:** it still holds the old pit and bench under the new art.
+
+## v13: digging = travelling back in time
 
 The cross-section is gone. Every era is a pixel world of its own in the kit's style, and the archaeologist **digs a pit in it**. Every answer takes the pit deeper by its points: more points, more swings, a deeper pit. A dotted gold line in the ground marks the bottom of the world. When the pit reaches it, the floor breaks and light comes up from below. He jumps in, drops into the older world (its name shows big for a moment) and digs on there with the rest of his points. So the pit shows how far you are in an era, and only enough points take you to the next one. The world you stand in is your depth; there is no 0 to 700 metre scale any more.
 

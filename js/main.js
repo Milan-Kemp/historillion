@@ -7,10 +7,10 @@ import { loadDays, saveDay, stats } from "./progress.js";
 
 // ?kit=b shows the second style kit (2d) for comparison. Default is the 8-bit kit.
 const KIT = new URLSearchParams(location.search).get("kit") === "b" ? "kit-b" : "kit";
-// The 2d kit shows the worlds (v13: digging = travelling back in time); ?scene=shaft the cross-section (v12, in metres), ?scene=pit the earlier pit with the bench.
+// The 2d kit shows the excavation field (v14, dig-scene.js + field.js: a trench with one layer per era); ?scene=world the worlds (v13), ?scene=shaft the cross-section (v12, in metres).
 const SCENE_PARAM = new URLSearchParams(location.search).get("scene");
-const SCENE = KIT !== "kit-b" ? null : SCENE_PARAM === "pit" || SCENE_PARAM === "shaft" ? SCENE_PARAM : "world";
-const SHAFT = SCENE === "world" || SCENE === "shaft"; // both have the same API: dig(key, points) returns a Promise, setDay, coreSample
+const SCENE = KIT !== "kit-b" ? null : SCENE_PARAM === "world" || SCENE_PARAM === "shaft" ? SCENE_PARAM : "pit";
+const SHAFT = SCENE === "world" || SCENE === "shaft"; // a scene module of its own (world-scene.js or shaft-scene.js), with coreSample for the end screen
 const METRES = SCENE === "shaft";                    // only the cross-section counts in metres
 document.getElementById("theme").href = `${KIT}/theme.css`;
 document.getElementById("icon").href = `${KIT}/brand/favicon.png`;
@@ -29,13 +29,11 @@ if (KIT === "kit-b") {
   layout.href = "kit-b/layout-phone.css";
   document.getElementById("theme").after(layout);
   const sheets = [layout];
-  if (SHAFT) { // world.css or shaft.css comes right after layout-phone.css
-    const shaftCss = document.createElement("link");
-    shaftCss.rel = "stylesheet";
-    shaftCss.href = `kit-b/${SCENE}.css`;
-    layout.after(shaftCss);
-    sheets.push(shaftCss);
-  }
+  const sceneCss = document.createElement("link"); // field.css, world.css or shaft.css comes right after layout-phone.css
+  sceneCss.rel = "stylesheet";
+  sceneCss.href = `kit-b/${SCENE === "pit" ? "field" : SCENE}.css`;
+  layout.after(sceneCss);
+  sheets.push(sceneCss);
   await Promise.all(sheets.map((l) => new Promise((done) => { l.onload = l.onerror = done; })));
 }
 const kit = await import(`../${KIT}/dig-scene.js`);
@@ -110,15 +108,14 @@ function intro(day) {
   }
   show(
     el("h1", { textContent: t.title }),
-    el("p", { textContent: METRES ? t.taglineDepth : SHAFT ? t.taglineWorlds : t.tagline }),
-    el("p", { textContent: METRES ? t.howDepth : SHAFT ? t.howWorlds : t.howScoring }),
+    el("p", { textContent: METRES ? t.taglineDepth : SHAFT ? t.taglineWorlds : SCENE ? t.taglinePit : t.tagline }),
+    el("p", { textContent: METRES ? t.howDepth : SHAFT ? t.howWorlds : SCENE ? t.howPit : t.howScoring }),
     ...logbook,
     el("button", { textContent: t.start, onclick: () => { scene?.sound.play("start"); ask(day, 0, []); } }),
   );
 }
 
 function ask(day, i, results) {
-  waiting?.disconnect();
   const question = day.questions[i];
   const timer = el("p", { className: "timer", role: "timer", textContent: t.seconds(SECONDS) });
   const input = el("input", { type: "text", autocomplete: "off", autocapitalize: "off", spellcheck: false, placeholder: t.placeholder, "aria-label": question.prompt });
@@ -210,7 +207,7 @@ function feedback(day, i, results) {
   const hud = (score) => scene.hud({ progress: { current: i + 1, total: day.questions.length }, counter: t.question(i + 1, day.questions.length), score: scoreText(score), soundLabel: t.soundLabel });
   if (scene) {
     hud(total - r.pts); // the points are not counted before the find is out of the ground
-    dug = shaft ? scene.dig(r.key, r.pts) : scene.dig(r.key, t.reaction[r.key], t.benchLabel[r.key]);
+    dug = shaft ? scene.dig(r.key, r.pts) : scene.dig(r.key, r.pts, { label: t.reaction[r.key], benchLabel: t.benchLabel[r.key] });
   }
   const typed = r.typed.trim() || "-";
   const next = el("button", { textContent: last ? t.finish : t.next, onclick: () => (last ? end(day, results) : ask(day, i + 1, results)) });
@@ -230,15 +227,12 @@ function feedback(day, i, results) {
       el("p", { className: "explain wait", textContent: r.text }),
       next,
     );
-    const waitingNodes = app.querySelectorAll(".rarity-word, .points, .rarity-line, .dig, .explain");
-    if (shaft) {
-      waiting?.disconnect();
-      dug.then(() => {
-        if (!word.isConnected) return; // the player already went on with Next
-        waitingNodes.forEach((n) => n.classList.remove("wait"));
-        hud(total);
-      });
-    } else revealWhenDug(waitingNodes, () => hud(total));
+    // the result waits for the dig: every 2d scene's dig() resolves when the find is out of the ground (or at once when skipped). Next is never blocked.
+    dug.then(() => {
+      if (!word.isConnected) return; // the player already went on with Next
+      app.querySelectorAll(".wait").forEach((n) => n.classList.remove("wait"));
+      hud(total);
+    });
     return;
   }
   show(
@@ -255,25 +249,10 @@ function feedback(day, i, results) {
   );
 }
 
-// The result (points, what he dug up, how rare) waits for the dig: it shows when the scene shows its reaction label, which is when the find is out of the
-// ground, or at once when the beat is skipped (key, Enter or tap) or with reduced motion. Next is never blocked.
-let waiting = null;
-function revealWhenDug(nodes, done) {
-  waiting?.disconnect();
-  const react = document.querySelector("#scene .react");
-  const show = () => { nodes.forEach((n) => n.classList.remove("wait")); done(); };
-  if (!react || !react.hidden) return show();
-  nodes.forEach((n) => n.classList.add("wait"));
-  waiting = new MutationObserver(() => { if (!react.hidden) { waiting.disconnect(); show(); } });
-  waiting.observe(react, { attributes: true, attributeFilter: ["hidden"] });
-}
-
 function end(day, results, review = false) {
-  waiting?.disconnect();
   scene?.hud(null);
   scene?.reset();
-  if (review && shaft) scene.setDay(results.map((r) => ({ key: r.key, points: r.pts }))); // a stored day: the shaft dug again, without animation
-  else if (review) scene?.setFinds(results.map((r) => DIG[r.key].find)); // a stored day: its finds back on the bench
+  if (review) scene?.setDay(results.map((r) => ({ key: r.key, points: r.pts }))); // a stored day: dug again, without animation
   else scene?.sound.play("finish");
   const total = results.reduce((s, r) => s + r.pts, 0);
   const days = REPLAY || review ? loadDays() : saveDay(day.date, results);
@@ -288,7 +267,7 @@ function end(day, results, review = false) {
     show(
       ...(shaft ? [shaft.coreSample({ finds: scene.finds, depth: total, label: METRES ? t.coreLabel : t.worldsLabel })] : []), // the day's dig: the column (shaft) or the strip of worlds
       el("h1", { className: "total" }, el("span", { className: "sr", textContent: `${t.total}: ` }), METRES ? t.depthLabel(total) : String(total)),
-      el("p", { className: "sub", textContent: METRES ? t.reached(total, shaft.eraAt(total).name) : SHAFT ? t.reachedWorld(shaft.eraAt(total).name) : t.totalLabel }),
+      el("p", { className: "sub", textContent: METRES ? t.reached(total, shaft.eraAt(total).name) : SHAFT ? t.reachedWorld(shaft.eraAt(total).name) : t.reachedLayer(kit.eraAt(total).name) }),
       ...logbook,
       // the curve and ranks run to 560 (the top 0.1 % is near 460); "One in a Historillion" starts at the tomb, 420
       endKit.endCurve({ bins: bins(dist, 20, CURVE_MAX), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, max: CURVE_MAX, topFrom: t.ranks.at(-1).from, unit: METRES ? " m" : "" }),
