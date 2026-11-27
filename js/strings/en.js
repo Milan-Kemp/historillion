@@ -42,6 +42,7 @@ export const t = {
   // The excavation field (2d kit v15): seven squares, one per answer; the rarer the answer, the deeper its square, into older layers.
   taglinePit: "7 history questions, 7 squares to dig. 3 seconds to read, 25 to answer.",
   howPit: "The rarer your answer, the deeper you dig, into older layers. A very rare answer reaches the golden tomb: One in a Historillion.",
+  eraLine: (era) => `Dug down to: ${era}`,
   deepest: (era) => `Deepest square: ${era}`,
   reached: (m, era) => `You reached ${m} m, ${era}`,
   // The one big word after an answer (2d kit, phone layout).

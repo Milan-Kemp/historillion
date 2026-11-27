@@ -79,3 +79,6 @@ body.phase-feedback:not(.no-hud):not(.phase-end) main > p.rarity-word[data-key="
 
 /* The logbook line (streak, played, best) on the start and end screens. */
 .logbook { margin: 0 0 var(--sp-3, 12px); font: 700 var(--fs-small, 14px)/1.4 var(--font-text, sans-serif); letter-spacing: .04em; color: var(--cream-dark, #dcc89c); }
+
+/* After an answer in the field: the layer this square reached ("Dug down to: Stone Age"), small, under the points. */
+body:not(.no-hud):not(.phase-end) main > p.era-line { margin: calc(-1 * var(--sp-2, 8px)) 0 var(--sp-2, 8px); font: 700 var(--fs-small, 14px)/1.3 var(--font-text, sans-serif); letter-spacing: .06em; text-transform: uppercase; color: var(--cream-dark, #dcc89c); }

@@ -223,6 +223,7 @@ function feedback(day, i, results) {
       el("p", { className: "your-answer", textContent: `${t.yourAnswer}: ${typed}${counted}` }),
       word,
       el("p", { className: "points wait", textContent: METRES ? t.metres(r.pts) : `+${r.pts}` }),
+      ...(SCENE === "pit" && r.key !== "none" ? [el("p", { className: "era-line wait", textContent: t.eraLine(kit.eraAt(r.pts).tag ?? kit.eraAt(r.pts).name) })] : []),
       el("p", { className: "rarity-line wait", textContent: rarityLine }),
       el("p", { className: "dig wait", textContent: t.youDug(r.dig.tool, r.dig.find) }),
       el("p", { className: "explain wait", textContent: r.text }),
@@ -271,12 +272,12 @@ function end(day, results, review = false) {
       el("p", { className: "sub", textContent: METRES ? t.reached(total, shaft.eraAt(total).name) : SHAFT ? t.reachedWorld(shaft.eraAt(total).name) : t.deepest(kit.eraAt(Math.max(0, ...results.map((r) => r.pts))).name) }),
       ...logbook,
       // the curve and ranks run to 560 (the top 0.1 % is near 460); "One in a Historillion" starts at the tomb, 420
-      endKit.endCurve({ bins: bins(dist, 20, CURVE_MAX), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, max: CURVE_MAX, topFrom: t.ranks.at(-1).from, unit: METRES ? " m" : "" }),
-      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle, unit: METRES ? " m" : "" }),
       resultsList({
         day, t: METRES ? { ...t, pointsShort: "m", plus: t.metres } : t, spriteUrl: (name) => `${KIT}/sprites/finds/${name}.png`,
         results: results.map((r) => ({ prompt: r.prompt, typed: r.typed, name: r.name, rarity: r.rarity, find: DIG[r.key].find, findLabel: r.dig.find, pts: r.pts })),
       }),
+      endKit.endCurve({ bins: bins(dist, 20, CURVE_MAX), total, percentile: Math.min(percentile(dist, total), 0.99), labels: t.curve, max: CURVE_MAX, topFrom: t.ranks.at(-1).from, unit: METRES ? " m" : "" }),
+      endKit.rankList({ total, ranks: t.ranks, title: t.ranksTitle, unit: METRES ? " m" : "" }),
       endKit.nextDig({ label: t.nextDig }),
       ...again,
     );
